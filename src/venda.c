@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "venda.h"
+#include "headers/venda.h"
 
 
 Venda new_venda(int quantidade, double preco){

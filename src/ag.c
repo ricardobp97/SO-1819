@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "venda.h"
+#include "headers/venda.h"
 
 Venda vendas[1024];
 int in[1024];
