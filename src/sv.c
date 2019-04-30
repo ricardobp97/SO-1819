@@ -1,13 +1,40 @@
-/* Servidor de Vendas
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include "estruturas.h"
 
-Este programa deve controlar stocks, receber pedidos do cliente de vendas,
-e registar as vendas efectuadas.
-A quantidade em stock de cada artigo deverá ser mantida num único ficheiro STOCKS,
-para todos os artigos. Cada venda efectuada deverá ser registada,
-acrescentando uma entrada a um ficheiro VENDAS, contendo código, quantidade e montante total da venda.
-O servidor de vendas deve ainda providenciar para correr o agregador a pedido,
-fazendo com que este receba o intervalo (para ser agregado) do ficheiro de vendas desde a última agregação,
-e fazendo com que o resultado da agregação seja escrito num ficheiro
-cujo nome reflecte o momento em que a agregação foi solicitada (e.g., 2019-03-29T14:23:56).
+Venda new_venda (int c, int q, float m) {
+    return (Venda){
+        .codigoArt = c,
+        .quantidade = q,
+        .montanteTotal = m
+	};
+}
 
-*/
+void insere_venda (Venda *v) {
+	int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
+	write(fd,v,sizeof(Venda));
+    close(fd);
+}
+
+int main () {
+    
+    /* Testes!!
+    Venda v2;
+    Venda v = new_venda(1,2,2.5);
+    Venda v1 = new_venda(2,7,12.5);
+    insere_venda(&v);
+    insere_venda(&v1);
+    int fd = open("./files/vendas", O_RDONLY);
+    lseek(fd,0,SEEK_SET);
+    read(fd,&v2, sizeof(Venda));
+    printf("Codigo: %d\n", v2.codigoArt);
+    printf("Quantidade: %d\n", v2.quantidade);
+    printf("Montante Total: %f\n", v2.montanteTotal);
+    close(fd);
+    */
+
+    return 0;
+}
