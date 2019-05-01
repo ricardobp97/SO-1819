@@ -26,6 +26,7 @@ void insere_venda(Venda *v);
 void delete_artigo(Artigo *a);
 void reName(Artigo a);
 void rePrice(Artigo a);
+
 void update_stock(int c, int q);
 void show_artigo(int c);
 */

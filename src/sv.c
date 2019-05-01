@@ -19,6 +19,10 @@ void insere_venda (Venda *v) {
     close(fd);
 }
 
+void update_stock (int c, int q) {
+
+}
+
 int main () {
     
     /* Testes!!
