@@ -17,16 +17,17 @@ typedef struct Stock{
 }Stock;
 
 //API
+Venda new_venda(int c, int q, float m);
+Stock new_stock(int c, int q);
+void insere_venda(Venda *v);
+void efetua_venda (int c, int q)
+void update_stock(int c, int q);
 
+/*
 Artigo new_artigo(int c,double p);
 int insereArtigo(char* codigo,double preco);
-Venda new_venda(int c, int q, float m);
-void insere_venda(Venda *v);
-/*
 void delete_artigo(Artigo *a);
 void reName(Artigo a);
 void rePrice(Artigo a);
-
-void update_stock(int c, int q);
 void show_artigo(int c);
 */

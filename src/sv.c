@@ -13,32 +13,64 @@ Venda new_venda (int c, int q, float m) {
 	};
 }
 
+Stock new_stock (int c, int q) {
+    return (Stock){
+        .codigoArt = c,
+        .quantidade = q
+    };
+}
+
 void insere_venda (Venda *v) {
 	int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
 	write(fd,v,sizeof(Venda));
     close(fd);
 }
 
-void update_stock (int c, int q) {
+// quantidade negativa -> alterar stocks,
+// verificar preco do artigo e inserir venda
+void efetua_venda (int c, int q) {
+    // Verificar Stock
+    Stock novo;
+    int fdS = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    lseek(fdS,c * sizeof(Stock),SEEK_SET);
+    read(fdS,&novo, sizeof(Stock));
+    if(novo.quantidade > 0){
+        int qvenda;
+        if(novo.quantidade >= q){
+            qvenda = q;
+            novo.quantidade -= q;
+        }
+        else{
+            qvenda = novo.quantidade;
+            novo.quantidade = 0;
+        }
+        // Alterar Stock
+        write(fdS,&novo, sizeof(Stock));
+        // Verificar preco do artigo
+        Artigo a;
+        int fdA = open("./files/artigos", O_RDONLY, 0600);
+        lseek(fdA,c * sizeof(Artigo),SEEK_SET);
+        read(fdS,&a, sizeof(Artigo));
+        int total = qvenda * a.preco;
+        close(fdA);
+        // Registar venda
+        Venda v = new_venda(c,qvenda,total);
+        insere_venda(&v);
+    }
+    close(fdS);
+}
 
+// quantidade positiva -> alterar stocks
+void update_stock (int c, int q) {
+    Stock novo;
+    int fd = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    lseek(fd,c * sizeof(Stock),SEEK_SET);
+    read(fd,&novo, sizeof(Stock));
+    novo.quantidade += q;
+    write(fd,&novo, sizeof(Stock));
+    close(fd);
 }
 
 int main () {
-    
-    /* Testes!!
-    Venda v2;
-    Venda v = new_venda(1,2,2.5);
-    Venda v1 = new_venda(2,7,12.5);
-    insere_venda(&v);
-    insere_venda(&v1);
-    int fd = open("./files/vendas", O_RDONLY);
-    lseek(fd,0,SEEK_SET);
-    read(fd,&v2, sizeof(Venda));
-    printf("Codigo: %d\n", v2.codigoArt);
-    printf("Quantidade: %d\n", v2.quantidade);
-    printf("Montante Total: %f\n", v2.montanteTotal);
-    close(fd);
-    */
-
     return 0;
 }
