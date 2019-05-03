@@ -3,8 +3,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-
-
 Artigo new_artigoN(){
 	Artigo a = malloc(sizeof(Artigo));
 	a->codigo = 0;
@@ -20,7 +18,6 @@ Artigo new_artigo(int codigo, off_t posicao, float preco){
 	a->preco = preco;
 	return a;
 }
-
 
 void setPrice(Artigo a , float np){
 	if(a)

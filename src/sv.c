@@ -3,13 +3,16 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>s
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
-void insere_venda (Venda v) {
-	int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
-	write(fd,v,sizeof(Venda));
+void insere_venda (int c, int q, float m) {
+    char buf[16];
+    snprintf(buf,16,"%d %d %f\n",c,q,m);
+    int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
+	write(fd,buf,16);
     close(fd);
 }
 
@@ -40,11 +43,12 @@ void efetua_venda (int c, int q) {
         read(fdS,&a, sizeof(Artigo));
         int total = qvenda * a->preco;
         close(fdA);
+        free(a);
         // Registar venda
-        Venda v = new_venda(c,qvenda,total);
-        insere_venda(v);
+        insere_venda(c,qvenda,total);
     }
     close(fdS);
+    free(novo);
 }
 
 // quantidade positiva -> alterar stocks
@@ -56,6 +60,11 @@ void update_stock (int c, int q) {
     novo->quantidade += q;
     write(fd,&novo, sizeof(Stock));
     close(fd);
+    free(novo);
+}
+
+void processa_instrucao (char* s) {
+    // ler a string s e redirecionar o pedido para a funcao certa.
 }
 
 int main () {
