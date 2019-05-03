@@ -3,7 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>s
+#include <stdlib.h>
+#include <string.h>
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
@@ -63,10 +64,34 @@ void update_stock (int c, int q) {
     free(novo);
 }
 
-void processa_instrucao (char* s) {
+void processa_instrucao (char* s, int n) {
+    char * tok = strtok(s," ");
+    int c = atoi(tok);
+    write(1, tok, n);
+    if(tok != NULL){
+        tok = strtok(NULL, s);
+        int q = atoi(tok);
+        write(1, tok, n);
+    }
+    //write(1, s, n);
     // ler a string s e redirecionar o pedido para a funcao certa.
 }
 
 int main () {
-    return 0;
+    int res;
+    char buffer[50];
+
+    if(mkfifo("pipe", 0666) == -1){
+        perror("pipe");
+    }
+    int pipe = open("pipe", O_RDONLY, 0666);
+
+    while((res = read(pipe, &buffer, 50)) > 0){
+        //processa_instrucao(buffer,res);
+        
+        write(1, buffer, res);
+    }
+
+    close(pipe);
+    unlink("./pipe");
 }
