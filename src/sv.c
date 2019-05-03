@@ -19,8 +19,9 @@ void insere_venda (int c, int q, float m) {
 
 // quantidade negativa -> alterar stocks,
 // verificar preco do artigo e inserir venda
-void efetua_venda (int c, int q) {
+int efetua_venda (int c, int q) {
     // Verificar Stock
+    int r = 0;
     Stock novo;
     int fdS = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
@@ -30,6 +31,7 @@ void efetua_venda (int c, int q) {
         if(novo->quantidade >= q){
             qvenda = q;
             novo->quantidade -= q;
+            r = novo->quantidade;
         }
         else{
             qvenda = novo->quantidade;
@@ -50,36 +52,57 @@ void efetua_venda (int c, int q) {
     }
     close(fdS);
     free(novo);
+    return r;
 }
 
 // quantidade positiva -> alterar stocks
-void update_stock (int c, int q) {
+int update_stock (int c, int q) {
+    int r;
     Stock novo;
     int fd = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     read(fd,&novo, sizeof(Stock));
     novo->quantidade += q;
+    r = novo->quantidade;
     write(fd,&novo, sizeof(Stock));
     close(fd);
     free(novo);
+    return r;
 }
 
-void processa_instrucao (char* s, int n) {
-    char * tok = strtok(s," ");
-    int c = atoi(tok);
-    write(1, tok, n);
-    if(tok != NULL){
-        tok = strtok(NULL, s);
-        int q = atoi(tok);
-        write(1, tok, n);
+char * processa_instrucao (char* s) {
+    char * r;
+    int stock;
+    char * token = strtok(s," ");
+    if(token != NULL){
+        int c = atoi(token);
+        token = strtok(NULL," ");
+        if(token != NULL){
+            int q = atoi(token);
+            if(q>0){
+                stock = update_stock(c,q);
+            }
+            else{
+                stock = efetua_venda(c,-q);
+            }
+            snprintf(r,16,"Novo Stock: %d\n",stock);
+        }
+        else{
+            // mostra no stdout stock e preco
+        }
     }
-    //write(1, s, n);
-    // ler a string s e redirecionar o pedido para a funcao certa.
+
+    return "Funciona!!";
+    //return r;
 }
 
 int main () {
     int res;
     char buffer[50];
+    char *token;
+    char * inst;
+    char * resposta;
+    int cliente;
 
     if(mkfifo("pipe", 0666) == -1){
         perror("pipe");
@@ -87,9 +110,20 @@ int main () {
     int pipe = open("pipe", O_RDONLY, 0666);
 
     while((res = read(pipe, &buffer, 50)) > 0){
-        //processa_instrucao(buffer,res);
-        
-        write(1, buffer, res);
+        token = strtok(buffer, ":");
+            if(token == "C"){
+                token = strtok(NULL, ":");
+                // Entrar no pipe do cliente
+                cliente = open(token,O_WRONLY, 0666);
+                write(cliente,"Ligacao Estabelecida!\n",23);
+            }
+            else{
+                if(token != NULL){
+                    inst = strtok(NULL, ":");
+                    resposta = processa_instrucao(inst);
+                    write(cliente,resposta,16);
+                }
+            }
     }
 
     close(pipe);

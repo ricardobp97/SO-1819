@@ -4,4 +4,4 @@ typedef struct Stock{
 } *Stock;
 
 Stock new_stock(int c, int q);
-void update_stock(int c, int q);
+int update_stock(int c, int q);

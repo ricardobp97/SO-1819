@@ -12,4 +12,4 @@ void setPreco(Venda v, float preco);
 
 
 void insere_venda(int c, int q, float m);
-void efetua_venda (int c, int q);
+int efetua_venda (int c, int q);
