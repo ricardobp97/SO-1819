@@ -26,26 +26,33 @@ char* getTime(){
 // Mensagens iniciadas com "mypipe:" -> instrucao
 // relativa ao respetivo cliente que detem o pipe
 int main () {
-    int res, size;
+    int res;
+    char *inst = malloc(50 * sizeof(char));
+    strcat(inst,"C-");
     char buffer[50];
+    char *mypipe = strtok(getTime(),"\n");
     int pipe = open("pipe", O_WRONLY, 0666);
-    // Criar pipe proprio
-    char * mypipe = getTime();
+
+    // Enviar mensagem ao servidor
+    strcat(inst,mypipe);
+    write(pipe,inst,50);
+
     if(mkfifo(mypipe, 0666) == -1){
         perror("pipe cliente");
     }
-    // Enviar mensagem ao servidor
-    write(pipe,strcat("C:",mypipe),50);
     // abre o proprio pipe
     int pp = open(mypipe, O_RDONLY, 0666);
-    char * m = strcat(mypipe,":");
-    size = strlen(m);
     
     while((res = read(0, &buffer, 50)) > 0){
-        write(pipe,strcat(m,buffer),res+size);
+        inst = mypipe;
+        strcat(inst,"-");
+        strcat(inst,buffer);
+        write(pipe,inst,50);
     }
 
     close(pipe);
     close(pp);
-    unlink(strcat("./",mypipe));
+    inst = "./";
+    strcat(inst,mypipe);
+    unlink(inst);
 }

@@ -97,30 +97,27 @@ char * processa_instrucao (char* s) {
 }
 
 int main () {
-    int res;
-    char buffer[50];
-    char *token;
-    char * inst;
-    char * resposta;
-    int cliente;
+    int res, cliente;
+    char buffer[200];
+    char *token[2];
+    char *resposta;
 
     if(mkfifo("pipe", 0666) == -1){
         perror("pipe");
     }
     int pipe = open("pipe", O_RDONLY, 0666);
 
-    while((res = read(pipe, &buffer, 50)) > 0){
-        token = strtok(buffer, ":");
-            if(token == "C"){
-                token = strtok(NULL, ":");
+    while((res = read(pipe, &buffer, 200)) > 0){
+        token[0] = strtok(buffer, "-");
+        token[1] = strtok(NULL, "-");
+            if(*token[0] == 'C'){
                 // Entrar no pipe do cliente
-                cliente = open(token,O_WRONLY, 0666);
+                cliente = open(token[1],O_WRONLY, 0666);
                 write(cliente,"Ligacao Estabelecida!\n",23);
             }
             else{
-                if(token != NULL){
-                    inst = strtok(NULL, ":");
-                    resposta = processa_instrucao(inst);
+                if(token[0] != NULL){
+                    resposta = processa_instrucao(token[1]);
                     write(cliente,resposta,16);
                 }
             }
