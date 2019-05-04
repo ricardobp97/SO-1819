@@ -5,15 +5,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
+
+char* getTime(){
+  time_t rawtime;
+  struct tm * timeinfo;
+
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+  return asctime(timeinfo);
+}
+
 void insere_venda (int c, int q, float m) {
-    char buf[16];
-    snprintf(buf,16,"%d %d %f\n",c,q,m);
+    char buf[200];
+    int lido;
+    lido=snprintf(buf,200,"%d %d %f\n",c,q,m);
     int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
-	write(fd,buf,16);
+	  write(fd,buf,lido);
     close(fd);
 }
 
@@ -71,7 +83,7 @@ int update_stock (int c, int q) {
 }
 
 char * processa_instrucao (char* s) {
-    char * r;
+    char r[16];
     int stock;
     char * token = strtok(s," ");
     if(token != NULL){
@@ -96,7 +108,63 @@ char * processa_instrucao (char* s) {
     //return r;
 }
 
-int main () {
+ssize_t readln(int fildes, void *buf, size_t nbyte) {
+
+	char* b = buf;
+	int i = 0;
+	while(i < nbyte) {
+		int n = read(fildes, &b[i],1);
+		if(n <= 0)
+			break;
+		if(b[i] == '\n') {
+			b[i] = '\n';
+			i++;
+			break;
+		}
+		i++;
+	}
+	return i;
+}
+
+void agrega(){
+  int rest= mkfifo("res",0666);
+  char buf[200];
+  int n;
+/*
+  pid_t pid, pid2;
+  int status,n;
+  */
+
+/*
+    pid=fork();
+    if (pid==0){
+      pid2=fork();
+
+      if(pid2==0){
+        execlp("./ag.c",getTime(),"./res",NULL);
+        _exit(-1);
+      }
+      */
+      int fd= open("./files/vendas",O_RDONLY,0600);
+      int res=open("./res",O_WRONLY);
+      while((n=readln(fd,buf,200))>0){
+          write(res,buf,n);
+      }
+      close(res);
+    /*
+      close(res);
+
+      _exit(0);
+  }
+  else{
+    wait(&status);
+    printf("%d\n",status );
+  }
+*/
+}
+
+int main(int argc, char const *argv[]) {
+
     int res, cliente;
     char buffer[200];
     char *token[2];
@@ -125,4 +193,6 @@ int main () {
 
     close(pipe);
     unlink("./pipe");
+
+    return 0;
 }
