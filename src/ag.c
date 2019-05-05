@@ -1,4 +1,4 @@
-#include <stdio.h>
+  #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -29,6 +29,16 @@ ssize_t readln(int fildes, void *buf, size_t nbyte) {
 	return i;
 }
 
+char* getTime(){
+  time_t rawtime;
+  struct tm * tf;
+
+  time ( &rawtime );
+  static char tempo[60];
+  tf = localtime ( &rawtime );
+  snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
+  return tempo;
+}
 
 int writeOutput(){
   int fd= open(fileName,O_RDONLY,0600);
@@ -65,7 +75,7 @@ void atualiza(char* line){
   char buf[50];
 
   int fd= open(fileName, O_CREAT| O_RDONLY,0600);
-
+  printf("ABRI A MERDA DO FICHEIRO %d\n",fd );
   sscanf(line,"%d %d %f\n", &codigo,&quant,&preco);
   int l=lseek(fd,50*codigo,SEEK_SET);
   int n=readln(fd,buf,50);
@@ -86,15 +96,18 @@ void atualiza(char* line){
 
 int main(int argc, char const *argv[]) {
   fileName=strdup(argv[1]);
+	printf("FILENAME %s\n",fileName );
   char * pipe=strdup(argv[2]);
-  int fd=open("./res",O_RDONLY);
+  int fd=open(pipe,O_RDONLY);
+  printf("%d\n",fd );
   dup2(fd,0);
   close(fd);
   char buf[200];
   while((size=readln(0,buf,200))>0){
+  //  printf("%s\n",buf );
     atualiza(buf);
   }
   close(fd);
-  unlink("./res");
+  unlink(pipe);
   writeOutput();
 }

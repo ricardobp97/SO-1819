@@ -13,17 +13,19 @@
 
 char* getTime(){
   time_t rawtime;
-  struct tm * timeinfo;
+  struct tm * tf;
 
   time ( &rawtime );
-  timeinfo = localtime ( &rawtime );
-  return asctime(timeinfo);
+  static char tempo[60];
+  tf = localtime ( &rawtime );
+  snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
+  return tempo;
 }
 
 void insere_venda (int c, int q, float m) {
-    char buf[200];
+    char buf[50];
     int lido;
-    lido=snprintf(buf,200,"%d %d %f\n",c,q,m);
+    lido=snprintf(buf,50,"%d %d %f\n",c,q,m);
     int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
 	  write(fd,buf,lido);
     close(fd);
@@ -127,41 +129,53 @@ ssize_t readln(int fildes, void *buf, size_t nbyte) {
 }
 
 void agrega(){
-  int rest= mkfifo("res",0666);
-  char buf[200];
+
+  char* lista[4]={"test1","test2","test3","test4"};
+  int fd= open("./files/vendas",O_RDONLY,0600);
+  int size=lseek(fd,0,SEEK_END);
+  int v=size/4;
+  printf("TAMANHO DO FICHEIROOO %d. V: %d\n", size,v);
+  close(fd);
+
+
+  char buf[50];
   int n;
-/*
-  pid_t pid, pid2;
-  int status,n;
-  */
+  pid_t pid1, pid2;
 
-/*
-    pid=fork();
-    if (pid==0){
-      pid2=fork();
 
-      if(pid2==0){
-        execlp("./ag.c",getTime(),"./res",NULL);
-        _exit(-1);
+      for(int i=0;i<4;i++){
+        pid1=fork();
+
+        if(pid1==0){
+          char nameOfFile[4];
+          snprintf(nameOfFile,4,"%d",i);
+          int rest= mkfifo(nameOfFile,0666);
+          printf("%d\n",rest );
+
+          pid2=fork();
+          if(pid2==0){
+            printf("O BUF É %s\n",nameOfFile );
+            execlp("./ag","./ag",lista[i],nameOfFile,NULL);
+            _exit(-1);
+          }
+
+          int res=open(nameOfFile,O_WRONLY);
+
+          int lido=0;
+          fd= open("./files/vendas",O_RDONLY,0600);
+          lseek(fd,i*v,SEEK_SET);
+          while(lido<v){
+              n=readln(fd,buf,50);
+              lido+=n;
+              write(res,buf,n);
+              printf("Lido: %s\n",buf);
+          }
+            close(res);
+            _exit(0);
+          }
       }
-      */
-      int fd= open("./files/vendas",O_RDONLY,0600);
-      int res=open("./res",O_WRONLY);
-      while((n=readln(fd,buf,200))>0){
-          write(res,buf,n);
-      }
-      close(res);
-    /*
-      close(res);
+  }
 
-      _exit(0);
-  }
-  else{
-    wait(&status);
-    printf("%d\n",status );
-  }
-*/
-}
 
 int main(int argc, char const *argv[]) {
 
@@ -193,6 +207,17 @@ int main(int argc, char const *argv[]) {
 
     close(pipe);
     unlink("./pipe");
+/*
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
+  insere_venda(2,2,10.1);
 
+  agrega();
+  */
     return 0;
 }
