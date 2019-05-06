@@ -2,11 +2,10 @@
 
 typedef struct Artigo{
 	int codigo;
-  float preco;
-  off_t posicao;
-} *Artigo;
+	off_t posicao;
+	double preco;
+} Artigo;
 
 
-Artigo new_artigoN();
-Artigo new_artigo(int codigo, off_t posicao, float preco);
-void setPrice(Artigo a , float np);
+// Api
+Artigo novo_Artigo(int codigo, off_t posicao, double preco);
