@@ -45,8 +45,11 @@ int main () {
     
     while((res = read(0, &buffer, 50)) > 0){
         inst = mypipe;
+        printf("%s\n", inst);
         strcat(inst,"-");
+        printf("%s\n", inst);
         strcat(inst,buffer);
+        printf("%s\n", inst);
         write(pipe,inst,50);
     }
 

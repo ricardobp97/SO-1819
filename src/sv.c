@@ -23,17 +23,19 @@ char* getTime(){
 }
 
 void insere_venda (int c, int q, float m) {
+    printf("Insere\n");
     char buf[50];
     int lido;
     lido=snprintf(buf,50,"%d %d %f\n",c,q,m);
     int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
-	  write(fd,buf,lido);
+	write(fd,buf,lido);
     close(fd);
 }
 
 // quantidade negativa -> alterar stocks,
 // verificar preco do artigo e inserir venda
 int efetua_venda (int c, int q) {
+    printf("Venda\n");
     // Verificar Stock
     int r = 0;
     Stock novo;
@@ -71,6 +73,7 @@ int efetua_venda (int c, int q) {
 
 // quantidade positiva -> alterar stocks
 int update_stock (int c, int q) {
+    printf("Update Stock\n");
     int r;
     Stock novo;
     int fd = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
@@ -85,6 +88,7 @@ int update_stock (int c, int q) {
 }
 
 char * processa_instrucao (char* s) {
+    printf("Processa Instrucao\n");
     char r[16];
     int stock;
     char * token = strtok(s," ");
@@ -197,18 +201,20 @@ int main(int argc, char const *argv[]) {
         token[0] = strtok(buffer, "-");
         token[1] = strtok(NULL, "-");
             if(*token[0] == 'C'){
+                printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                 // Entrar no pipe do cliente
                 cliente = open(token[1],O_WRONLY, 0666);
                 write(cliente,"Ligacao Estabelecida!\n",23);
             }
             else{
                 if(token[0] != NULL){
+                    printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                     resposta = processa_instrucao(token[1]);
                     write(cliente,resposta,16);
                 }
             }
     }
-
+    close(cliente);
     close(pipe);
     unlink("./pipe");
 /*
