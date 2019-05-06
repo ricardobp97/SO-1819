@@ -3,23 +3,11 @@
 #include <string.h>
 #include <sys/types.h>
 
-Artigo new_artigoN(){
-	Artigo a = malloc(sizeof(Artigo));
-	a->codigo = 0;
-	a->posicao = 0;
-	a->preco = 0;
-	return a;
+Artigo novo_Artigo(int cod, off_t pos, double pre){
+	return(Artigo){
+		.codigo = cod,
+		.posicao = pos,
+		.preco = pre
+	};
 }
 
-Artigo new_artigo(int codigo, off_t posicao, float preco){
-	Artigo a = malloc(sizeof(Artigo));
-	a->codigo = codigo;
-	a->posicao = posicao;
-	a->preco = preco;
-	return a;
-}
-
-void setPrice(Artigo a , float np){
-	if(a)
-		a->preco = np;
-}
