@@ -10,6 +10,8 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
+int cliente;
+char *token[2];
 
 char* getTime(){
   time_t rawtime;
@@ -23,7 +25,6 @@ char* getTime(){
 }
 
 void insere_venda (int c, int q, float m) {
-    printf("Insere\n");
     char buf[50];
     int lido;
     lido=snprintf(buf,50,"%d %d %f\n",c,q,m);
@@ -35,7 +36,6 @@ void insere_venda (int c, int q, float m) {
 // quantidade negativa -> alterar stocks,
 // verificar preco do artigo e inserir venda
 int efetua_venda (int c, int q) {
-    printf("Venda\n");
     // Verificar Stock
     int r = 0;
     Stock novo;
@@ -60,9 +60,9 @@ int efetua_venda (int c, int q) {
         int fdA = open("./files/artigos", O_RDONLY, 0600);
         lseek(fdA,c * sizeof(Artigo),SEEK_SET);
         read(fdS,&a, sizeof(Artigo));
-        int total = qvenda * a->preco;
+        int total = qvenda * a.preco;
         close(fdA);
-        free(a);
+        //free(a);
         // Registar venda
         insere_venda(c,qvenda,total);
     }
@@ -73,7 +73,6 @@ int efetua_venda (int c, int q) {
 
 // quantidade positiva -> alterar stocks
 int update_stock (int c, int q) {
-    printf("Update Stock\n");
     int r;
     Stock novo;
     int fd = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
@@ -88,29 +87,28 @@ int update_stock (int c, int q) {
 }
 
 char * processa_instrucao (char* s) {
-    printf("Processa Instrucao\n");
     char r[16];
-    int stock;
-    char * token = strtok(s," ");
-    if(token != NULL){
-        int c = atoi(token);
-        token = strtok(NULL," ");
-        if(token != NULL){
-            int q = atoi(token);
+    int stock,lido;
+    char * tok = strtok(s," ");
+    if(tok != NULL){
+        int c = atoi(tok);
+        tok = strtok(NULL," ");
+        if(tok != NULL){
+            int q = atoi(tok);
             if(q>0){
                 stock = update_stock(c,q);
             }
             else{
                 stock = efetua_venda(c,-q);
             }
-            snprintf(r,16,"Novo Stock: %d\n",stock);
+            lido = snprintf(r,16,"Novo Stock: %d\n",stock);
         }
         else{
             // mostra no stdout stock e preco
         }
     }
 
-    return "Funciona!!";
+    return "Funciona!!\n";
     //return r;
 }
 
@@ -187,9 +185,8 @@ void agrega(){
 
 int main(int argc, char const *argv[]) {
 
-    int res, cliente;
+    int res;
     char buffer[200];
-    char *token[2];
     char *resposta;
 
     if(mkfifo("pipe", 0666) == -1){
@@ -210,7 +207,7 @@ int main(int argc, char const *argv[]) {
                 if(token[0] != NULL){
                     printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                     resposta = processa_instrucao(token[1]);
-                    write(cliente,resposta,16);
+                    write(cliente,resposta,11);
                 }
             }
     }

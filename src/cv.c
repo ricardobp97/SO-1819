@@ -10,6 +10,8 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
+char *inst;
+
 char* getTime(){
     time_t rawtime;
     struct tm * timeinfo;
@@ -26,8 +28,8 @@ char* getTime(){
 // Mensagens iniciadas com "mypipe:" -> instrucao
 // relativa ao respetivo cliente que detem o pipe
 int main () {
-    int res;
-    char *inst = malloc(50 * sizeof(char));
+    int res,f;
+    inst = malloc(50 * sizeof(char));
     strcat(inst,"C-");
     char buffer[50];
     char *mypipe = strtok(getTime(),"\n");
@@ -40,21 +42,26 @@ int main () {
     if(mkfifo(mypipe, 0666) == -1){
         perror("pipe cliente");
     }
-    // abre o proprio pipe
-    int pp = open(mypipe, O_RDONLY, 0666);
+    if((f = fork()) == 0){
+        // abre o proprio pipe
+        int pp = open(mypipe, O_RDONLY, 0666);
+        int n;
+        char buf[50];
+        while((n = read(pp, &buf, 50)) > 0){
+            write(1,buf,n);
+        }
+        close(pp);
+        exit(0);
+    }
     
     while((res = read(0, &buffer, 50)) > 0){
+        // é preciso dar refresh no inst...
         inst = mypipe;
-        printf("%s\n", inst);
         strcat(inst,"-");
-        printf("%s\n", inst);
         strcat(inst,buffer);
-        printf("%s\n", inst);
         write(pipe,inst,50);
     }
-
     close(pipe);
-    close(pp);
     inst = "./";
     strcat(inst,mypipe);
     unlink(inst);
