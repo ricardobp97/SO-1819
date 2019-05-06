@@ -10,6 +10,7 @@
 
 int size;
 char* fileName;
+char* output;
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
 
@@ -44,6 +45,9 @@ int writeOutput(){
   int fd= open(fileName,O_RDONLY,0600);
   int n;
   char buf[200];
+  int out=open(output,O_WRONLY);
+  dup2(out,1);
+  close(out);
   while ((n=readln(fd,&buf,200))) {
     write(1,buf,n);
   }
@@ -75,7 +79,6 @@ void atualiza(char* line){
   char buf[50];
 
   int fd= open(fileName, O_CREAT| O_RDONLY,0600);
-  printf("ABRI A MERDA DO FICHEIRO %d\n",fd );
   sscanf(line,"%d %d %f\n", &codigo,&quant,&preco);
   int l=lseek(fd,50*codigo,SEEK_SET);
   int n=readln(fd,buf,50);
@@ -96,7 +99,7 @@ void atualiza(char* line){
 
 int main(int argc, char const *argv[]) {
   fileName=strdup(argv[1]);
-	printf("FILENAME %s\n",fileName );
+  output="porfavor";
   char * pipe=strdup(argv[2]);
   int fd=open(pipe,O_RDONLY);
   printf("%d\n",fd );

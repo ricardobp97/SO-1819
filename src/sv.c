@@ -134,13 +134,13 @@ void agrega(){
   int fd= open("./files/vendas",O_RDONLY,0600);
   int size=lseek(fd,0,SEEK_END);
   int v=size/4;
-  printf("TAMANHO DO FICHEIROOO %d. V: %d\n", size,v);
   close(fd);
 
 
   char buf[50];
   int n;
   pid_t pid1, pid2;
+  mkfifo("porfavor",0666);
 
 
       for(int i=0;i<4;i++){
@@ -154,7 +154,6 @@ void agrega(){
 
           pid2=fork();
           if(pid2==0){
-            printf("O BUF É %s\n",nameOfFile );
             execlp("./ag","./ag",lista[i],nameOfFile,NULL);
             _exit(-1);
           }
@@ -168,11 +167,16 @@ void agrega(){
               n=readln(fd,buf,50);
               lido+=n;
               write(res,buf,n);
-              printf("Lido: %s\n",buf);
           }
             close(res);
             _exit(0);
           }
+      }
+      int op=open("porfavor",O_RDONLY);
+      char baba[200];
+      int nn;
+      while((nn=readln(op,baba,200))>0){
+        write(1,baba,nn);
       }
   }
 
@@ -218,6 +222,6 @@ int main(int argc, char const *argv[]) {
   insere_venda(2,2,10.1);
 
   agrega();
-  */
+*/
     return 0;
 }
