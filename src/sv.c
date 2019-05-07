@@ -75,7 +75,7 @@ int efetua_venda (int c, int q) {
 int update_stock (int c, int q) {
     int r;
     Stock novo;
-    int fd = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    int fd = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     read(fd,&novo, sizeof(Stock));
     novo->quantidade += q;
@@ -86,9 +86,31 @@ int update_stock (int c, int q) {
     return r;
 }
 
+int getStock(int c){
+    int r;
+    Stock s;
+    int fd = open("./files/stocks",O_RDONLY,0666);
+    lseek(fd,c * sizeof(Stock),SEEK_SET);
+    read(fd,&s,sizeof(Stock));
+    r = s->quantidade;
+    close(fd);
+    return r;
+}
+
+int getPrecoArt (int c) {
+    int p;
+    Artigo a;
+    int fd = open("./files/artigos",O_RDONLY,0666);
+    lseek(fd,c * sizeof(Artigo),SEEK_SET);
+    read(fd,&a,sizeof(Artigo));
+    p = a.preco;
+    close(fd);
+    return p;
+}
+
 char * processa_instrucao (char* s) {
-    char r[16];
-    int stock;
+    char r[30];
+    int stock = 0;
     char * tok = strtok(s," ");
     if(tok != NULL){
         int c = atoi(tok);
@@ -105,11 +127,13 @@ char * processa_instrucao (char* s) {
         }
         else{
             // mostra no stdout stock e preco
+            int preco = getPrecoArt(c);
+            stock = getStock(c);
+            snprintf(r,21,"Stock: %d\nPreco: %d\n",stock,preco);
         }
     }
-
-    return "Funciona!!\n";
-    //return r;
+    printf("R %s\n", r);
+    return r;
 }
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
@@ -180,8 +204,13 @@ void agrega(){
       while((nn=readln(op,baba,200))>0){
         write(1,baba,nn);
       }
-  }
+}
 
+int length(char * s) {
+    int i;
+    for(i=0 ; s[i]!='\0'; i++);
+    return i;
+}
 
 int main() {
 
@@ -194,11 +223,10 @@ int main() {
     }
     int pipe = open("pipe", O_RDONLY, 0666);
 
-    while((res = read(pipe, buffer, 200)) > 0){
+    while((res = readln(pipe, buffer, 200)) > 0){
         token[0] = strtok(buffer, ":");
         token[1] = strtok(NULL, ":");
             if(*token[0] == 'C'){
-                printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                 // Entrar no pipe do cliente
                 cliente = open(token[1],O_WRONLY, 0666);
                 if(cliente == -1) perror("erro abrir pipe");
@@ -206,9 +234,8 @@ int main() {
             }
             else{
                 if(token[0] != NULL){
-                    printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                     resposta = processa_instrucao(token[1]);
-                    write(cliente,resposta,11);
+                    write(cliente,resposta,21);
                 }
             }
     }

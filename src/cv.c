@@ -10,8 +10,6 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
-char *inst;
-
 char* getTime(){
     time_t rawtime;
     struct tm * tf;
@@ -41,6 +39,12 @@ ssize_t readln(int fildes, void *buf, size_t nbyte) {
 	return i;
 }
 
+int length(char * s) {
+    int i;
+    for(i=0 ; s[i]!='\0'; i++);
+    return i;
+}
+
 // Cliente de Vendas:
 // Abre o pipe do servidor para lhe fornececer input
 // Cria o seu pipe para receber output do servidor
@@ -49,8 +53,8 @@ ssize_t readln(int fildes, void *buf, size_t nbyte) {
 // Mensagens iniciadas com "mypipe:" -> instrucao
 // relativa ao respetivo cliente que detem o pipe
 int main () {
-    int res,f;
-    inst = malloc(100 * sizeof(char));
+    int res,f,i;
+    char * inst = malloc(100 * sizeof(char));
     strcat(inst,"C:");
     char buffer[100];
     char *mypipe = strtok(getTime(),"\n");
@@ -77,15 +81,13 @@ int main () {
     
     while((res = readln(0, buffer, 100)) > 0){
         // é preciso dar refresh no inst...
-        inst = mypipe;
-        strcat(inst,":");
-        strcat(inst,buffer);
-        printf("%s\n", inst);
-        write(pipe,inst,50);
+        //char * inst = malloc(100 * sizeof(char));
+        i = length(mypipe) + res;
+        snprintf(inst,i+1,"%s:%s\n",mypipe,buffer);
+        write(pipe,inst,i+1);
     }
     
     close(pipe);
-    inst = "./";
-    strcat(inst,mypipe);
+    snprintf(inst,100,"./%s",mypipe);
     unlink(inst);
 }
