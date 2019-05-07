@@ -24,6 +24,13 @@ char* getTime(){
     return tempo;
 }
 
+Stock new_stock (int c, int q) {
+    Stock s = malloc(sizeof(Stock));
+    s->codigoArt = c;
+    s->quantidade = q;
+    return s;
+}
+
 void insere_venda (int c, int q, float m) {
     char buf[50];
     int lido;
@@ -37,52 +44,61 @@ void insere_venda (int c, int q, float m) {
 // verificar preco do artigo e inserir venda
 int efetua_venda (int c, int q) {
     // Verificar Stock
-    int r = 0;
+    int r = 0, res;
     Stock novo;
-    int fdS = open("./files/stocks", O_CREAT | O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    int fdS = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
-    read(fdS,&novo, sizeof(Stock));
-    if(novo->quantidade > 0){
-        int qvenda;
-        if(novo->quantidade >= q){
-            qvenda = q;
-            novo->quantidade -= q;
-            r = novo->quantidade;
+    res = read(fdS,&novo, sizeof(Stock));
+    if(res > 0){
+        if(novo->quantidade > 0){
+            int qvenda;
+            if(novo->quantidade >= q){
+                qvenda = q;
+                novo->quantidade -= q;
+                r = novo->quantidade;
+            }
+            else{
+                qvenda = novo->quantidade;
+                novo->quantidade = 0;
+            }
+            // Alterar Stock
+            write(fdS,&novo, sizeof(Stock));
+            // Verificar preco do artigo
+            Artigo a;
+            int fdA = open("./files/artigos", O_RDONLY, 0600);
+            lseek(fdA,c * sizeof(Artigo),SEEK_SET);
+            read(fdS,&a, sizeof(Artigo));
+            int total = qvenda * a.preco;
+            close(fdA);
+            //free(a);
+            // Registar venda
+            insere_venda(c,qvenda,total);
         }
-        else{
-            qvenda = novo->quantidade;
-            novo->quantidade = 0;
-        }
-        // Alterar Stock
-        write(fdS,&novo, sizeof(Stock));
-        // Verificar preco do artigo
-        Artigo a;
-        int fdA = open("./files/artigos", O_RDONLY, 0600);
-        lseek(fdA,c * sizeof(Artigo),SEEK_SET);
-        read(fdS,&a, sizeof(Artigo));
-        int total = qvenda * a.preco;
-        close(fdA);
-        //free(a);
-        // Registar venda
-        insere_venda(c,qvenda,total);
     }
     close(fdS);
-    free(novo);
     return r;
 }
 
 // quantidade positiva -> alterar stocks
 int update_stock (int c, int q) {
-    int r;
+    int r, res;
     Stock novo;
     int fd = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    read(fd,&novo, sizeof(Stock));
-    novo->quantidade += q;
-    r = novo->quantidade;
-    write(fd,&novo, sizeof(Stock));
-    close(fd);
-    free(novo);
+    res = read(fd,&novo, sizeof(Stock));
+    if(res > 0){
+        novo->quantidade += q;
+        r = novo->quantidade;
+        write(fd,&novo, sizeof(Stock));
+        close(fd);
+    }
+    else{
+        r = q;
+        novo = new_stock(c,q);
+        write(fd,&novo, sizeof(Stock));
+        close(fd);
+        free(novo);
+    }
     return r;
 }
 
@@ -223,7 +239,7 @@ int main() {
     }
     int pipe = open("pipe", O_RDONLY, 0666);
 
-    while((res = readln(pipe, buffer, 200)) > 0){
+    while((res = read(pipe, buffer, 200)) > 0){
         token[0] = strtok(buffer, ":");
         token[1] = strtok(NULL, ":");
             if(*token[0] == 'C'){
