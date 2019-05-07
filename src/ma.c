@@ -144,7 +144,6 @@ int main (int argc, char* argv[]){
 
 	if (iniciaFicheiros() != 0) perror("Falha a inicializar ficheiros");
 	else {	iniciaCodigoGLobal();
-		//	int fd = open(argv[1],O_RDONLY,0666);
 			char buf[500];
 
 			while(1) {
@@ -152,18 +151,7 @@ int main (int argc, char* argv[]){
 				if(h <= 0) break;
 
 				if (buf[0] == 'i'){
-					/*
-				  char* token_inst;
-					char* token_nome;
-					char* token_preco;
-					char* token_lixo;
 
-					token_inst = strtok(buf," ");
-					token_nome = strtok(NULL," ");
-					token_preco = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-          */
           char nome[100];
           char l[1];
           double preco;
@@ -173,19 +161,7 @@ int main (int argc, char* argv[]){
 				}
 
 				if (buf[0] == 'p'){
-/*
-				  char* token_inst;
-					char* token_cod;
-					char* token_preco;
-					char* token_lixo;
 
-					token_inst = strtok(buf," ");
-					token_cod = strtok(NULL," ");
-					token_preco = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-					int cod = atoi(token_cod);
-					double preco = strtod(token_preco,NULL);*/
           int c;
           char l[1];
           double preco;
@@ -195,19 +171,7 @@ int main (int argc, char* argv[]){
 				}
 
 				if (buf[0] == 'n'){
-          /*
-				    char* token_inst;
-					char* token_cod;
-					char* token_nome;
-					char* token_lixo;
 
-					token_inst = strtok(buf," ");
-					token_cod = strtok(NULL," ");
-					token_nome = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-					int cod = atoi(token_cod);
-          */
           int c;
           char nome[100];
           char l[1];
