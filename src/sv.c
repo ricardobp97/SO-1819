@@ -11,17 +11,17 @@
 #include "headers/venda.h"
 
 int cliente;
-char *token[2];
+char * token[2];
 
 char* getTime(){
-  time_t rawtime;
-  struct tm * tf;
-
-  time ( &rawtime );
-  static char tempo[60];
-  tf = localtime ( &rawtime );
-  snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
-  return tempo;
+    time_t rawtime;
+    struct tm * tf;
+  
+    time ( &rawtime );
+    static char tempo[60];
+    tf = localtime ( &rawtime );
+    snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
+    return tempo;
 }
 
 void insere_venda (int c, int q, float m) {
@@ -88,7 +88,7 @@ int update_stock (int c, int q) {
 
 char * processa_instrucao (char* s) {
     char r[16];
-    int stock,lido;
+    int stock;
     char * tok = strtok(s," ");
     if(tok != NULL){
         int c = atoi(tok);
@@ -101,7 +101,7 @@ char * processa_instrucao (char* s) {
             else{
                 stock = efetua_venda(c,-q);
             }
-            lido = snprintf(r,16,"Novo Stock: %d\n",stock);
+            snprintf(r,16,"Novo Stock: %d\n",stock);
         }
         else{
             // mostra no stdout stock e preco
@@ -183,7 +183,7 @@ void agrega(){
   }
 
 
-int main(int argc, char const *argv[]) {
+int main() {
 
     int res;
     char buffer[200];
@@ -194,13 +194,14 @@ int main(int argc, char const *argv[]) {
     }
     int pipe = open("pipe", O_RDONLY, 0666);
 
-    while((res = read(pipe, &buffer, 200)) > 0){
-        token[0] = strtok(buffer, "-");
-        token[1] = strtok(NULL, "-");
+    while((res = read(pipe, buffer, 200)) > 0){
+        token[0] = strtok(buffer, ":");
+        token[1] = strtok(NULL, ":");
             if(*token[0] == 'C'){
                 printf("token 0 = %s\ntoken 1 = %s\n",token[0], token[1]);
                 // Entrar no pipe do cliente
                 cliente = open(token[1],O_WRONLY, 0666);
+                if(cliente == -1) perror("erro abrir pipe");
                 write(cliente,"Ligacao Estabelecida!\n",23);
             }
             else{
@@ -214,6 +215,7 @@ int main(int argc, char const *argv[]) {
     close(cliente);
     close(pipe);
     unlink("./pipe");
+
 /*
   insere_venda(2,2,10.1);
   insere_venda(2,2,10.1);
