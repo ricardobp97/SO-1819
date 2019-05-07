@@ -10,19 +10,20 @@
 int codigoGLOBAL = -1 ;
 
 int iniciaCodigoGLobal(){
-	off_t tamanho;
-	int fd1 = open("./files/artigos", O_RDONLY, 0666);
+	  off_t tamanho;
+	  int fd1 = open("./files/artigos", O_RDONLY, 0666);
     tamanho = lseek(fd1,0,SEEK_END);
     int tamanhoAux = (int)tamanho;
     ssize_t tamanhoArtigo = sizeof(Artigo);
     int tamanhoArtigoAux = (int)tamanhoArtigo;
-    codigoGLOBAL = tamanhoAux/tamanhoArtigoAux; 
+    codigoGLOBAL = tamanhoAux/tamanhoArtigoAux;
+    return 0;
 }
 
 int iniciaFicheiros(){
 	open("./files/artigos",O_CREAT,0666);
 	open("./files/strings",O_CREAT,0666);
-	return 1;
+	return 0;
 }
 
 int insereArtigo(char* nome, double preco){
@@ -38,7 +39,7 @@ int insereArtigo(char* nome, double preco){
 	close(fd1);
 	close(fd2);
 	codigoGLOBAL++;
-	return 1;
+	return 0;
 }
 
 Artigo alteraPrecoAux (int cod){
@@ -66,7 +67,7 @@ int alteraPreco(int cod,double pre){
     	write(fd1,&a,sizeof(Artigo));
     	close(fd1);
 		}
-	return 1;
+	return 0;
 }
 
 
@@ -79,7 +80,7 @@ Artigo alteraNomeAux(int cod){
 	read(fd1,&a,sizeof(Artigo));
 	close(fd1);
 	return a;
-		
+
 }
 
 
@@ -101,32 +102,25 @@ int alteraNome(int cod, char* n) {
 		close(fd1);
 		close(fd2);
 		}
-	return 1;
+	return 0;
 }
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
 
 	char* b = buf;
-
-	int i = 0; 
+	int i = 0;
 
 	while(i < nbyte) {
-
 		int n = read(fildes, &b[i],1);
-
-		if(n <= 0) 
+		if(n <= 0)
 			break;
-
 		if(b[i] == '\n') {
-			b[i] = '\0';
+			b[i] = '\n';
 			i++;
 			break;
 		}
-
 		i++;
-
 	}
-
 	return i;
 }
 
@@ -134,31 +128,32 @@ int interpretador(){
 
 	int fd1 = open("./files/artigos",O_RDONLY,0666);
 	Artigo a;
+  int file=open("logArtigos",O_CREAT |O_WRONLY,0666);
 	while (read(fd1,&a,sizeof(Artigo))){
-			printf("Codigo = %d \n ",a.codigo);
-			printf("Posicao = %jd \n ",a.posicao);
-			printf("Preco = %f \n ",a.preco);
-			printf("\n");
+      char buf[200];
+      int escrito=snprintf(buf,200,"Código= %d\n Posicao= %lld\n Preco= %f\n",a.codigo,a.posicao,a.preco);
+      write(file,buf,escrito);
 		}
 	close(fd1);
+  return 0;
 }
 
 
 
 int main (int argc, char* argv[]){
 
-	if (iniciaFicheiros() != 1) perror("Falha a inicializar ficheiros");
-	else {	iniciaCodigoGLobal(); 
-			int fd = open(argv[1],O_RDONLY,0666);
-			char buf[1000];
+	if (iniciaFicheiros() != 0) perror("Falha a inicializar ficheiros");
+	else {	iniciaCodigoGLobal();
+		//	int fd = open(argv[1],O_RDONLY,0666);
+			char buf[500];
 
 			while(1) {
-				size_t h = readln(fd,buf,sizeof(buf));
+				int h = readln(0,buf,sizeof(buf));
 				if(h <= 0) break;
 
 				if (buf[0] == 'i'){
-					
-				    char* token_inst;
+					/*
+				  char* token_inst;
 					char* token_nome;
 					char* token_preco;
 					char* token_lixo;
@@ -168,15 +163,18 @@ int main (int argc, char* argv[]){
 					token_preco = strtok(NULL," ");
 					token_lixo = strtok(NULL," ");
 
-									
-					double preco = strtod(token_preco,NULL);
-					insereArtigo(token_nome,preco);
-					
+          */
+          char nome[100];
+          char l[1];
+          double preco;
+          sscanf(buf,"%s %s %lf\n",l,nome,&preco);
+					insereArtigo(nome,preco);
+
 				}
 
 				if (buf[0] == 'p'){
-					
-				    char* token_inst;
+/*
+				  char* token_inst;
 					char* token_cod;
 					char* token_preco;
 					char* token_lixo;
@@ -186,14 +184,18 @@ int main (int argc, char* argv[]){
 					token_preco = strtok(NULL," ");
 					token_lixo = strtok(NULL," ");
 
-					int cod = atoi(token_cod);		
-					double preco = strtod(token_preco,NULL);
-					alteraPreco(cod,preco);
-					
+					int cod = atoi(token_cod);
+					double preco = strtod(token_preco,NULL);*/
+          int c;
+          char l[1];
+          double preco;
+          sscanf(buf,"%s %d %lf\n",l,&c,&preco);
+					alteraPreco(c,preco);
+
 				}
 
 				if (buf[0] == 'n'){
-					
+          /*
 				    char* token_inst;
 					char* token_cod;
 					char* token_nome;
@@ -204,19 +206,17 @@ int main (int argc, char* argv[]){
 					token_nome = strtok(NULL," ");
 					token_lixo = strtok(NULL," ");
 
-					int cod = atoi(token_cod);		
-					alteraNome(cod,token_nome);
-					
+					int cod = atoi(token_cod);
+          */
+          int c;
+          char nome[100];
+          char l[1];
+          sscanf(buf,"%s %d %s\n",l,&c,nome);
+					alteraNome(c,nome);
+
 				}
-
-
-
-
 			}
-		
-			
-			
-		
+
 			interpretador();
 		}
 
