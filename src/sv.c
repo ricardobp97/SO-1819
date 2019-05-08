@@ -81,40 +81,48 @@ int efetua_venda (int c, int q) {
     return r;
 }
 
+void set_stock(int c, int q){
+    Stock s = new_stock(c,q);
+    int fd = open("./files/stocks", O_WRONLY, 0600);
+    lseek(fd,c * sizeof(Stock),SEEK_SET);
+    write(fd,s,sizeof(Stock));
+    close(fd);
+}
+
 // quantidade positiva -> alterar stocks
 int update_stock (int c, int q) {
     int r, res;
     Stock novo;
-    int fd = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    int fd = open("./files/stocks", O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     res = read(fd,&novo, sizeof(Stock));
+    close(fd);
     if(res > 0){
-        novo->quantidade += q;
-        r = novo->quantidade;
-        lseek(fd,c * sizeof(Stock),SEEK_SET);
-        write(fd,&novo, sizeof(Stock));
-        close(fd);
+        r = novo->quantidade + q;
+        set_stock(c,r);
     }
     else{
         r = q;
-        novo = new_stock(c,q);
-        lseek(fd,c * sizeof(Stock),SEEK_SET);
-        write(fd,&novo, sizeof(Stock));
-        close(fd);
+        set_stock(c,r);
     }
     return r;
 }
 
 int getStock(int c){
-    int r;
-    Stock s;
-    int fd = open("./files/stocks",O_RDONLY,0666);
+    int r, res;
+    Stock novo;
+    int fd = open("./files/stocks", O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    if(read(fd,&s,sizeof(Stock)) > 0)
-        r = s->quantidade;
-    else
-        r = 0;
+    res = read(fd,&novo, sizeof(Stock));
     close(fd);
+    if(res > 0){
+        printf("AAAA\n");
+        r = novo->quantidade;
+        printf("R -> %d\n", r);
+    }
+    else{
+        r = 0;
+    }
     return r;
 }
 
