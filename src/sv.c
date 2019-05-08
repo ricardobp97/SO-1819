@@ -44,7 +44,7 @@ void insere_venda (int c, int q, float m) {
 // verificar preco do artigo e inserir venda
 int efetua_venda (int c, int q) {
     // Verificar Stock
-    int r = 0, res;
+    int r = -1, res;
     Stock novo;
     int fdS = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
@@ -97,7 +97,6 @@ int update_stock (int c, int q) {
         novo = new_stock(c,q);
         write(fd,&novo, sizeof(Stock));
         close(fd);
-        free(novo);
     }
     return r;
 }
@@ -107,8 +106,10 @@ int getStock(int c){
     Stock s;
     int fd = open("./files/stocks",O_RDONLY,0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    read(fd,&s,sizeof(Stock));
-    r = s->quantidade;
+    if(read(fd,&s,sizeof(Stock)) > 0)
+        r = s->quantidade;
+    else
+        r = 0;
     close(fd);
     return r;
 }
@@ -124,32 +125,53 @@ int getPrecoArt (int c) {
     return p;
 }
 
-char * processa_instrucao (char* s) {
-    char r[30];
+int artigo_existe(int c) {
+    int r;
+    Artigo a;
+    int fd = open("./files/artigos",O_RDONLY,0666);
+    lseek(fd,c * sizeof(Artigo),SEEK_SET);
+    r = read(fd,&a,sizeof(Artigo));
+    close(fd);
+
+    return r;
+}
+
+void processa_instrucao (char* s, char ** r) {
     int stock = 0;
     char * tok = strtok(s," ");
     if(tok != NULL){
         int c = atoi(tok);
-        tok = strtok(NULL," ");
-        if(tok != NULL){
-            int q = atoi(tok);
-            if(q>0){
-                stock = update_stock(c,q);
+        if(artigo_existe(c) > 0){
+            tok = strtok(NULL," ");
+            if(tok != NULL){
+                int q = atoi(tok);
+                if(q>0){
+                    stock = update_stock(c,q);
+                    snprintf(*r,16,"Novo Stock: %d\n",stock);
+                }
+                else{
+                    stock = efetua_venda(c,-q);
+                    if(stock < 0)
+                        snprintf(*r,26,"Nao ha stock disponivel!\n");
+                    else
+                        snprintf(*r,16,"Novo Stock: %d\n",stock);
+                }
             }
             else{
-                stock = efetua_venda(c,-q);
+                // mostra no stdout stock e preco
+                int preco = getPrecoArt(c);
+                stock = getStock(c);
+                snprintf(*r,21,"Stock: %d || Preco: %d\n",stock,preco);
             }
-            snprintf(r,16,"Novo Stock: %d\n",stock);
         }
         else{
-            // mostra no stdout stock e preco
-            int preco = getPrecoArt(c);
-            stock = getStock(c);
-            snprintf(r,21,"Stock: %d\nPreco: %d\n",stock,preco);
+            snprintf(*r,21,"Artigo não existe!\n");
         }
     }
-    printf("R %s\n", r);
-    return r;
+    else{
+        snprintf(*r,20,"Código Inválido!\n");
+    }
+    printf("R -> %s\n",*r);
 }
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
@@ -250,11 +272,14 @@ int main() {
             }
             else{
                 if(token[0] != NULL){
-                    resposta = processa_instrucao(token[1]);
-                    write(cliente,resposta,21);
+                    // Seg Fault processa_instrucao!
+                    processa_instrucao(token[1],&resposta);
+                    printf("Resposta  %s", resposta);
+                    write(cliente,resposta,26);
                 }
             }
     }
+    printf("Acabei\n");
     close(cliente);
     close(pipe);
     unlink("./pipe");
