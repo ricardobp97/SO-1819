@@ -55,8 +55,9 @@ int main (int argc, char * argv[]) {
     printf("\n");
     fd = open("./artigos",O_RDONLY,0666);
     while((res = read(fd, &a, sizeof(Artigo))) > 0){
-        res = snprintf(buffer,1024,"Código = %d\nPosicao = %lld\nPreco = %f\n",a.codigo,a.posicao,a.preco);
+        res = snprintf(buffer,1024,"Código = %d\nPosicao = %lld\nPreco = %d\n",a.codigo,a.posicao,a.preco);
         write(1,buffer,res);
+        printf("\n");
     }
     close(fd);
     printf("\n");
@@ -67,6 +68,7 @@ int main (int argc, char * argv[]) {
     while((res = read(fd, &s, sizeof(Stock))) > 0){
         res = snprintf(buffer,1024,"Código = %d\nQuantidade = %d\n",s.codigoArt,s.quantidade);
         write(1,buffer,res);
+        printf("\n");
     }
     close(fd);
     printf("\n");

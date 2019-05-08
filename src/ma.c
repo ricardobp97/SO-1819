@@ -131,7 +131,7 @@ int interpretador(){
   int file=open("logArtigos",O_CREAT |O_WRONLY,0666);
 	while (read(fd1,&a,sizeof(Artigo))){
       char buf[200];
-      int escrito=snprintf(buf,200,"Código= %d\n Posicao= %lld\n Preco= %f\n",a.codigo,a.posicao,a.preco);
+      int escrito=snprintf(buf,200,"Código= %d\n Posicao= %lld\n Preco= %d\n",a.codigo,a.posicao,a.preco);
       write(file,buf,escrito);
 		}
 	close(fd1);
@@ -155,7 +155,7 @@ int main (int argc, char* argv[]){
           char nome[100];
           char l[1];
           int preco;
-          sscanf(buf,"%s %s %lf\n",l,nome,&preco);
+          sscanf(buf,"%s %s %d\n",l,nome,&preco);
 					insereArtigo(nome,preco);
 
 				}
@@ -165,7 +165,7 @@ int main (int argc, char* argv[]){
           int c;
           char l[1];
           int preco;
-          sscanf(buf,"%s %d %lf\n",l,&c,&preco);
+          sscanf(buf,"%s %d %d\n",l,&c,&preco);
 					alteraPreco(c,preco);
 
 				}

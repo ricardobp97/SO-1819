@@ -32,70 +32,6 @@ Stock new_stock (int c, int q) {
 	};
 }
 
-void insere_venda (int c, int q, int m) {
-    char buf[50];
-    int lido;
-    lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
-    int fd = open("./files/vendas", O_APPEND | O_WRONLY, 0600);
-	write(fd,buf,lido);
-    close(fd);
-}
-
-// quantidade negativa -> alterar stocks,
-// verificar preco do artigo e inserir venda
-int efetua_venda (int c, int q) {
-    int r = -1, res;
-    Stock novo;
-    int fdS = open("./files/stocks", O_RDONLY, 0600);
-    lseek(fdS,c * sizeof(Stock),SEEK_SET);
-    res = read(fdS,&novo, sizeof(Stock));
-    close(fdS);
-    if(res > 0){
-        if(novo.quantidade > 0){
-            int qvenda;
-            if(novo.quantidade >= q){
-                qvenda = q;
-                r = novo.quantidade - q;
-            }
-            else{
-                qvenda = novo.quantidade;
-                r = 0;
-            }
-            set_stock(c,r);
-            int total = qvenda * getPrecoArt(c);
-            insere_venda(c,qvenda,total);
-        }
-    }
-    return r;
-}
-
-void set_stock(int c, int q){
-    Stock s = new_stock(c,q);
-    int fd = open("./files/stocks", O_WRONLY, 0600);
-    lseek(fd,c * sizeof(Stock),SEEK_SET);
-    write(fd,&s,sizeof(Stock));
-    close(fd);
-}
-
-// quantidade positiva -> alterar stocks
-int update_stock (int c, int q) {
-    int r, res;
-    Stock novo;
-    int fd = open("./files/stocks", O_RDONLY, 0600);
-    lseek(fd,c * sizeof(Stock),SEEK_SET);
-    res = read(fd,&novo, sizeof(Stock));
-    close(fd);
-    if(res > 0){
-        r = novo.quantidade + q;
-        set_stock(c,r);
-    }
-    else{
-        r = q;
-        set_stock(c,r);
-    }
-    return r;
-}
-
 int getStock(int c){
     int r, res;
     Stock s;
@@ -140,6 +76,70 @@ int isDidigt(char * s) {
             return 0;
     }
     return 1;
+}
+
+void set_stock(int c, int q){
+    Stock s = new_stock(c,q);
+    int fd = open("./files/stocks", O_WRONLY, 0600);
+    lseek(fd,c * sizeof(Stock),SEEK_SET);
+    write(fd,&s,sizeof(Stock));
+    close(fd);
+}
+
+void insere_venda (int c, int q, int m) {
+    char buf[50];
+    int lido;
+    lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
+    int fd = open("./files/vendas", O_APPEND | O_WRONLY, 0600);
+	write(fd,buf,lido);
+    close(fd);
+}
+
+// quantidade negativa -> alterar stocks,
+// verificar preco do artigo e inserir venda
+int efetua_venda (int c, int q) {
+    int r = -1, res;
+    Stock novo;
+    int fdS = open("./files/stocks", O_RDONLY, 0600);
+    lseek(fdS,c * sizeof(Stock),SEEK_SET);
+    res = read(fdS,&novo, sizeof(Stock));
+    close(fdS);
+    if(res > 0){
+        if(novo.quantidade > 0){
+            int qvenda;
+            if(novo.quantidade >= q){
+                qvenda = q;
+                r = novo.quantidade - q;
+            }
+            else{
+                qvenda = novo.quantidade;
+                r = 0;
+            }
+            set_stock(c,r);
+            int total = qvenda * getPrecoArt(c);
+            insere_venda(c,qvenda,total);
+        }
+    }
+    return r;
+}
+
+// quantidade positiva -> alterar stocks
+int update_stock (int c, int q) {
+    int r, res;
+    Stock novo;
+    int fd = open("./files/stocks", O_RDONLY, 0600);
+    lseek(fd,c * sizeof(Stock),SEEK_SET);
+    res = read(fd,&novo, sizeof(Stock));
+    close(fd);
+    if(res > 0){
+        r = novo.quantidade + q;
+        set_stock(c,r);
+    }
+    else{
+        r = q;
+        set_stock(c,r);
+    }
+    return r;
 }
 
 void processa_instrucao (char* s, char** pt) {
