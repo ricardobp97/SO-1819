@@ -72,8 +72,9 @@ int main () {
         int pp = open(mypipe, O_RDONLY, 0666);
         int n;
         char buf[100];
-        while((n = readln(pp, buf, 100)) > 0){
+        while((n = read(pp, buf, 100)) > 0){
             write(1,buf,n);
+            write(1,"\n",2);
         }
         close(pp);
         exit(0);

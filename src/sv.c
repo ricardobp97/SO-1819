@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
@@ -62,13 +63,14 @@ int efetua_venda (int c, int q) {
                 novo->quantidade = 0;
             }
             // Alterar Stock
+            lseek(fdS,c * sizeof(Stock),SEEK_SET);
             write(fdS,&novo, sizeof(Stock));
             // Verificar preco do artigo
             Artigo a;
             int fdA = open("./files/artigos", O_RDONLY, 0600);
             lseek(fdA,c * sizeof(Artigo),SEEK_SET);
             read(fdS,&a, sizeof(Artigo));
-            int total = qvenda * a.preco;
+            double total = qvenda * a.preco;
             close(fdA);
             //free(a);
             // Registar venda
@@ -89,12 +91,14 @@ int update_stock (int c, int q) {
     if(res > 0){
         novo->quantidade += q;
         r = novo->quantidade;
+        lseek(fd,c * sizeof(Stock),SEEK_SET);
         write(fd,&novo, sizeof(Stock));
         close(fd);
     }
     else{
         r = q;
         novo = new_stock(c,q);
+        lseek(fd,c * sizeof(Stock),SEEK_SET);
         write(fd,&novo, sizeof(Stock));
         close(fd);
     }
@@ -115,7 +119,7 @@ int getStock(int c){
 }
 
 int getPrecoArt (int c) {
-    int p;
+    double p;
     Artigo a;
     int fd = open("./files/artigos",O_RDONLY,0666);
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
@@ -136,10 +140,19 @@ int artigo_existe(int c) {
     return r;
 }
 
-void processa_instrucao (char* s, char ** r) {
+int isDidigt(char * s) {
+    int i;
+    for(i=0; s[i]!='\0'; i++){
+        if(!isdigit(s[i]))
+            return 0;
+    }
+    return 1;
+}
+
+void processa_instrucao (char* s, char** pt) {
     int stock = 0;
     char * tok = strtok(s," ");
-    if(tok != NULL){
+    if(tok != NULL && isDidigt(tok)){
         int c = atoi(tok);
         if(artigo_existe(c) > 0){
             tok = strtok(NULL," ");
@@ -147,31 +160,30 @@ void processa_instrucao (char* s, char ** r) {
                 int q = atoi(tok);
                 if(q>0){
                     stock = update_stock(c,q);
-                    snprintf(*r,16,"Novo Stock: %d\n",stock);
+                    snprintf(*pt,25,"Novo Stock: %d\n",stock);
                 }
                 else{
                     stock = efetua_venda(c,-q);
                     if(stock < 0)
-                        snprintf(*r,26,"Nao ha stock disponivel!\n");
+                        snprintf(*pt,26,"Nao ha stock disponivel!\n");
                     else
-                        snprintf(*r,16,"Novo Stock: %d\n",stock);
+                        snprintf(*pt,25,"Novo Stock: %d\n",stock);
                 }
             }
             else{
                 // mostra no stdout stock e preco
-                int preco = getPrecoArt(c);
+                double preco = getPrecoArt(c);
                 stock = getStock(c);
-                snprintf(*r,21,"Stock: %d || Preco: %d\n",stock,preco);
+                snprintf(*pt,30,"Stock: %d || Preco: %f\n",stock,preco);
             }
         }
         else{
-            snprintf(*r,21,"Artigo não existe!\n");
+            snprintf(*pt,21,"Artigo não existe!\n");
         }
     }
     else{
-        snprintf(*r,20,"Código Inválido!\n");
+        snprintf(*pt,20,"Código Inválido!\n");
     }
-    printf("R -> %s\n",*r);
 }
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
@@ -254,7 +266,8 @@ int main() {
 
     int res;
     char buffer[200];
-    char *resposta;
+    char *resposta = malloc(50 * sizeof(char));
+    char ** pt = &resposta;
 
     if(mkfifo("pipe", 0666) == -1){
         perror("pipe");
@@ -272,10 +285,8 @@ int main() {
             }
             else{
                 if(token[0] != NULL){
-                    // Seg Fault processa_instrucao!
-                    processa_instrucao(token[1],&resposta);
-                    printf("Resposta  %s", resposta);
-                    write(cliente,resposta,26);
+                    processa_instrucao(token[1],pt);
+                    write(cliente,resposta,length(resposta));
                 }
             }
     }
