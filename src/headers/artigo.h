@@ -3,9 +3,9 @@
 typedef struct Artigo{
 	int codigo;
 	off_t posicao;
-	double preco;
+	int preco;
 } Artigo;
 
 
 // Api
-Artigo novo_Artigo(int codigo, off_t posicao, double preco);
+Artigo novo_Artigo(int codigo, off_t posicao, int preco);

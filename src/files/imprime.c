@@ -7,7 +7,7 @@
 typedef struct Artigo{
 	int codigo;
 	off_t posicao;
-	double preco;
+	int preco;
 } Artigo;
 
 typedef struct Stock{

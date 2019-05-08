@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-Artigo novo_Artigo(int cod, off_t pos, double pre){
+Artigo novo_Artigo(int cod, off_t pos, int pre){
 	return(Artigo){
 		.codigo = cod,
 		.posicao = pos,

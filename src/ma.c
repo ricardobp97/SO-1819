@@ -26,7 +26,7 @@ int iniciaFicheiros(){
 	return 0;
 }
 
-int insereArtigo(char* nome, double preco){
+int insereArtigo(char* nome, int preco){
 	char c = ' ';
 	int fd1 = open("./files/artigos",O_WRONLY | O_RDONLY, 0666);
 	int fd2 = open("./files/strings",O_WRONLY| O_RDONLY, 0666);
@@ -54,7 +54,7 @@ Artigo alteraPrecoAux (int cod){
 }
 
 
-int alteraPreco(int cod,double pre){
+int alteraPreco(int cod,int pre){
 	if (cod > codigoGLOBAL) perror("Artigo inexistente");
 	else {
 		int fd1 = open("./files/artigos",O_WRONLY ,0666);
@@ -154,7 +154,7 @@ int main (int argc, char* argv[]){
 
           char nome[100];
           char l[1];
-          double preco;
+          int preco;
           sscanf(buf,"%s %s %lf\n",l,nome,&preco);
 					insereArtigo(nome,preco);
 
@@ -164,7 +164,7 @@ int main (int argc, char* argv[]){
 
           int c;
           char l[1];
-          double preco;
+          int preco;
           sscanf(buf,"%s %d %lf\n",l,&c,&preco);
 					alteraPreco(c,preco);
 

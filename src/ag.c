@@ -56,9 +56,9 @@ int writeOutput(){
 }
 
 
-void adiciona(int cod, int quantidade, float preco, char* line){
+void adiciona(int cod, int quantidade, int preco, char* line){
   int c,q;
-  float p=0;
+  int p=0;
   c=q=0;
   sscanf(line,"%d %d %f\n",&c,&q,&p );
   q+=quantidade;
@@ -75,7 +75,7 @@ void adiciona(int cod, int quantidade, float preco, char* line){
 void atualiza(char* line){
   int codigo,quant;
   codigo=quant=0;
-  float preco=0;
+  int preco=0;
   char buf[50];
 
   int fd= open(fileName, O_CREAT| O_RDONLY,0600);

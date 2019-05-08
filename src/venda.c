@@ -4,7 +4,7 @@
 #include "headers/venda.h"
 
 
-Venda new_venda(int codigo, int quantidade, float total){
+Venda new_venda(int codigo, int quantidade, int total){
   Venda v=malloc(sizeof(Venda));
   v->codigoArt = codigo;
   v->quantidade = quantidade;
@@ -20,7 +20,7 @@ int getQuantidade(Venda v){
     return -1;
 }
 
-float getPreco(Venda v){
+int getPreco(Venda v){
   if(v)
     return v->montanteTotal;
   else
@@ -33,7 +33,7 @@ void setQuantidade(Venda v, int quantidade){
     v->quantidade=(v->quantidade)+quantidade;
 }
 
-void setPreco(Venda v, float total){
+void setPreco(Venda v, int total){
   if(v){
     v->montanteTotal+=total;
   }

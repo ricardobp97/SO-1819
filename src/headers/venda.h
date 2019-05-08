@@ -1,15 +1,15 @@
 typedef struct Venda {
 	int codigoArt;
     int quantidade;
-	float montanteTotal;
+	int montanteTotal;
 } *Venda;
 
-Venda new_venda (int codigo, int quantidade, float total);
+Venda new_venda (int codigo, int quantidade, int total);
 int getQuantidade (Venda v);
-float getPreco (Venda v);
+int getPreco (Venda v);
 void setQuantidade(Venda v, int quantidade);
-void setPreco(Venda v, float preco);
+void setPreco(Venda v, int preco);
 
 
-void insere_venda(int c, int q, float m);
+void insere_venda(int c, int q, int m);
 int efetua_venda (int c, int q);
