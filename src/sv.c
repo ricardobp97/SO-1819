@@ -26,17 +26,17 @@ char* getTime(){
 }
 
 Stock new_stock (int c, int q) {
-    Stock s = malloc(sizeof(Stock));
-    s->codigoArt = c;
-    s->quantidade = q;
-    return s;
+    return(Stock){
+		.codigoArt = c,
+		.quantidade = q
+	};
 }
 
-void insere_venda (int c, int q, float m) {
+void insere_venda (int c, int q, int m) {
     char buf[50];
     int lido;
-    lido=snprintf(buf,50,"%d %d %f\n",c,q,m);
-    int fd = open("./files/vendas", O_CREAT | O_APPEND | O_WRONLY, 0600);
+    lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
+    int fd = open("./files/vendas", O_APPEND | O_WRONLY, 0600);
 	write(fd,buf,lido);
     close(fd);
 }
@@ -44,40 +44,28 @@ void insere_venda (int c, int q, float m) {
 // quantidade negativa -> alterar stocks,
 // verificar preco do artigo e inserir venda
 int efetua_venda (int c, int q) {
-    // Verificar Stock
     int r = -1, res;
     Stock novo;
-    int fdS = open("./files/stocks", O_APPEND | O_WRONLY | O_RDONLY, 0600);
+    int fdS = open("./files/stocks", O_RDONLY, 0600);
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
     res = read(fdS,&novo, sizeof(Stock));
+    close(fdS);
     if(res > 0){
-        if(novo->quantidade > 0){
+        if(novo.quantidade > 0){
             int qvenda;
-            if(novo->quantidade >= q){
+            if(novo.quantidade >= q){
                 qvenda = q;
-                novo->quantidade -= q;
-                r = novo->quantidade;
+                r = novo.quantidade - q;
             }
             else{
-                qvenda = novo->quantidade;
-                novo->quantidade = 0;
+                qvenda = novo.quantidade;
+                r = 0;
             }
-            // Alterar Stock
-            lseek(fdS,c * sizeof(Stock),SEEK_SET);
-            write(fdS,&novo, sizeof(Stock));
-            // Verificar preco do artigo
-            Artigo a;
-            int fdA = open("./files/artigos", O_RDONLY, 0600);
-            lseek(fdA,c * sizeof(Artigo),SEEK_SET);
-            read(fdS,&a, sizeof(Artigo));
-            double total = qvenda * a.preco;
-            close(fdA);
-            //free(a);
-            // Registar venda
+            set_stock(c,r);
+            int total = qvenda * getPrecoArt(c);
             insere_venda(c,qvenda,total);
         }
     }
-    close(fdS);
     return r;
 }
 
@@ -85,7 +73,7 @@ void set_stock(int c, int q){
     Stock s = new_stock(c,q);
     int fd = open("./files/stocks", O_WRONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    write(fd,s,sizeof(Stock));
+    write(fd,&s,sizeof(Stock));
     close(fd);
 }
 
@@ -98,7 +86,7 @@ int update_stock (int c, int q) {
     res = read(fd,&novo, sizeof(Stock));
     close(fd);
     if(res > 0){
-        r = novo->quantidade + q;
+        r = novo.quantidade + q;
         set_stock(c,r);
     }
     else{
@@ -110,15 +98,13 @@ int update_stock (int c, int q) {
 
 int getStock(int c){
     int r, res;
-    Stock novo;
+    Stock s;
     int fd = open("./files/stocks", O_RDONLY, 0600);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    res = read(fd,&novo, sizeof(Stock));
+    res = read(fd,&s, sizeof(Stock));
     close(fd);
     if(res > 0){
-        printf("AAAA\n");
-        r = novo->quantidade;
-        printf("R -> %d\n", r);
+        r = s.quantidade;
     }
     else{
         r = 0;
@@ -127,13 +113,13 @@ int getStock(int c){
 }
 
 int getPrecoArt (int c) {
-    double p;
+    int p;
     Artigo a;
     int fd = open("./files/artigos",O_RDONLY,0666);
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
     read(fd,&a,sizeof(Artigo));
-    p = a.preco;
     close(fd);
+    p = a.preco;
     return p;
 }
 
@@ -144,7 +130,6 @@ int artigo_existe(int c) {
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
     r = read(fd,&a,sizeof(Artigo));
     close(fd);
-
     return r;
 }
 
@@ -171,6 +156,7 @@ void processa_instrucao (char* s, char** pt) {
                     snprintf(*pt,25,"Novo Stock: %d\n",stock);
                 }
                 else{
+                    printf("q  %d\n", q);
                     stock = efetua_venda(c,-q);
                     if(stock < 0)
                         snprintf(*pt,26,"Nao ha stock disponivel!\n");
@@ -180,9 +166,9 @@ void processa_instrucao (char* s, char** pt) {
             }
             else{
                 // mostra no stdout stock e preco
-                double preco = getPrecoArt(c);
+                int preco = getPrecoArt(c);
                 stock = getStock(c);
-                snprintf(*pt,30,"Stock: %d || Preco: %f\n",stock,preco);
+                snprintf(*pt,30,"Stock: %d || Preco: %d\n",stock,preco);
             }
         }
         else{

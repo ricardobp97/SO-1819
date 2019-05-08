@@ -6,7 +6,7 @@
 
 Stock new_stock (int c, int q) {
     Stock s = malloc(sizeof(Stock));
-    s->codigoArt = c;
-    s->quantidade = q;
+    s.codigoArt = c;
+    s.quantidade = q;
     return s;
 }
