@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -10,9 +11,6 @@
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
-
-int cliente;
-char * token[2];
 
 char* getTime(){
     time_t rawtime;
@@ -257,35 +255,72 @@ int length(char * s) {
 }
 
 int main() {
-
+    int i, f, c, status;
     int res;
+    char * token[2];
+    char *nomes[11];
     char buffer[200];
-    char *resposta = malloc(50 * sizeof(char));
-    char ** pt = &resposta;
 
+    for(i=0; i<11; i++){
+        // 1 pipe por cada filho!
+        snprintf(nomes[i],4,"%d",i);
+        if(mkfifo(nomes[i], 0666) == -1){
+            perror("pipes filhos");
+        }
+        f = fork();
+        // codigo de cada filho!!
+        if(f == 0){
+            int n, cliente;
+            int pp = open(nomes[i], O_RDONLY, 0666);
+            char buf[100];
+            char *tok[2];
+            char *resposta = malloc(50 * sizeof(char));
+            char ** pt = &resposta;
+            while((n = read(pp, buf, 100)) > 0){
+                tok[0] = strtok(buffer, ":");
+                tok[1] = strtok(NULL, ":");
+                cliente = open(tok[0],O_WRONLY, 0666);
+                if(cliente == -1) perror("erro abrir pipe do cliente");
+                processa_instrucao(tok[1],pt);
+                write(cliente,resposta,length(resposta));
+                close(cliente);
+            }
+            close(pp);
+            free(pt);
+            _exit(i);
+        }
+    }
+    // Codigo pai
     if(mkfifo("pipe", 0666) == -1){
         perror("pipe");
     }
     int pipe = open("pipe", O_RDONLY, 0666);
-
+    
+    int filho;
     while((res = read(pipe, buffer, 200)) > 0){
         token[0] = strtok(buffer, ":");
         token[1] = strtok(NULL, ":");
-            if(*token[0] == 'C'){
-                // Entrar no pipe do cliente
-                cliente = open(token[1],O_WRONLY, 0666);
-                if(cliente == -1) perror("erro abrir pipe");
-                write(cliente,"Ligacao Estabelecida!\n",23);
-            }
-            else{
-                if(token[0] != NULL){
-                    processa_instrucao(token[1],pt);
-                    write(cliente,resposta,length(resposta));
-                }
+            if(token[0] && token[1]){
+                c = atoi(strtok(token[1]," "));
+                if(0 <= c && c < 10) filho = open("0", O_APPEND || O_WRONLY, 0666);
+                if(11 <= c && c < 20) filho = open("1", O_APPEND || O_WRONLY, 0666);
+                if(21 <= c && c < 30) filho = open("2", O_APPEND || O_WRONLY, 0666);
+                if(31 <= c && c < 40) filho = open("3", O_APPEND || O_WRONLY, 0666);
+                if(41 <= c && c < 50) filho = open("4", O_APPEND || O_WRONLY, 0666);
+                if(51 <= c && c < 60) filho = open("5", O_APPEND || O_WRONLY, 0666);
+                if(61 <= c && c < 70) filho = open("6", O_APPEND || O_WRONLY, 0666);
+                if(71 <= c && c < 80) filho = open("7", O_APPEND || O_WRONLY, 0666);
+                if(81 <= c && c < 90) filho = open("8", O_APPEND || O_WRONLY, 0666);
+                if(91 <= c && c < 100) filho = open("9", O_APPEND || O_WRONLY, 0666);
+                if(c >= 100) filho = open("10", O_APPEND || O_WRONLY, 0666);
+                write(filho,buffer,res);
+                close(filho);
             }
     }
-    printf("Acabei\n");
-    close(cliente);
+
+    for(i=0; i<11; i++){
+        wait(&status);
+    }
     close(pipe);
     unlink("./pipe");
 

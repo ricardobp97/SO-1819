@@ -55,7 +55,6 @@ int length(char * s) {
 int main () {
     int res,f,i;
     char * inst = malloc(100 * sizeof(char));
-    strcat(inst,"C:");
     char buffer[100];
     char *mypipe = strtok(getTime(),"\n");
     int pipe = open("pipe", O_WRONLY, 0666);
@@ -63,12 +62,8 @@ int main () {
     if(mkfifo(mypipe, 0666) == -1){
         perror("pipe cliente");
     }
-    // Enviar mensagem ao servidor
-    strcat(inst,mypipe);
-    write(pipe,inst,50);
 
     if((f = fork()) == 0){
-        // abre o proprio pipe
         int pp = open(mypipe, O_RDONLY, 0666);
         int n;
         char buf[100];
@@ -81,8 +76,6 @@ int main () {
     }
     
     while((res = readln(0, buffer, 100)) > 0){
-        // é preciso dar refresh no inst...
-        //char * inst = malloc(100 * sizeof(char));
         i = length(mypipe) + res;
         snprintf(inst,i+1,"%s:%s\n",mypipe,buffer);
         write(pipe,inst,i+1);
