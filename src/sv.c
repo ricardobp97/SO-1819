@@ -13,11 +13,12 @@
 #include "headers/venda.h"
 
 char *token[2];
+int lido;
 
 char* getTime(){
     time_t rawtime;
     struct tm * tf;
-  
+
     time ( &rawtime );
     static char tempo[60];
     tf = localtime ( &rawtime );
@@ -90,7 +91,7 @@ void insere_venda (int c, int q, int m) {
     char buf[50];
     int lido;
     lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
-    int fd = open("./files/vendas", O_APPEND | O_WRONLY, 0600);
+    int fd = open("./files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0600);
 	write(fd,buf,lido);
     close(fd);
 }
@@ -180,75 +181,114 @@ void processa_instrucao (char* s, char** pt) {
     }
 }
 
-ssize_t readln(int fildes, void *buf, size_t nbyte) {
-
-	char* b = buf;
-	int i = 0;
-	while(i < nbyte) {
-		int n = read(fildes, &b[i],1);
-		if(n <= 0)
-			break;
-		if(b[i] == '\n') {
-			b[i] = '\n';
-			i++;
-			break;
-		}
-		i++;
-	}
-	return i;
+int readln(int fildes, char *buf, int maxBytes){
+  char byte;
+  int i = 0;
+  int res;
+  while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
+    if (byte != '\n'){
+      buf[i] = byte;
+      i += res;
+    }
+    else {
+        buf[i++] = '\n';
+        return i;
+    }
+  }
+  return i;
 }
 
 void agrega(){
 
-  char* lista[4]={"test1","test2","test3","test4"};
-  int fd= open("./files/vendas",O_RDONLY,0600);
-  int size=lseek(fd,0,SEEK_END);
-  int v=size/4;
-  close(fd);
+  pid_t pidW=0;
+
+  char* data = getTime();
+    int fd = open("./files/vendas",O_RDONLY,0666);
+    int size = lseek(fd,0,SEEK_END);
+    close(fd);
+    int numPipes=4;
 
 
-  char buf[50];
-  int n;
-  pid_t pid1, pid2;
-  mkfifo("porfavor",0666);
+    // sub agregadores escrevem para aqui
+    // agregador final lê de aqui
+    int fifo = mkfifo("subagregacoes",0666);
+    if (fifo < 0)
+      perror("Could not create a FIFO!");
 
 
-      for(int i=0;i<4;i++){
-        pid1=fork();
+    // cria agregador de agregadores
+    // lê do named pipe e escreve no ficheiro com a data
+    int ff=fork();
+    if(ff==0){
+      pidW=getpid();
+      int std= open("subagregacoes",O_RDONLY);
+      dup2(std,0);
+      close(std);
 
-        if(pid1==0){
-          char nameOfFile[4];
-          snprintf(nameOfFile,4,"%d",i);
-          int rest= mkfifo(nameOfFile,0666);
-          printf("%d\n",rest );
+      int stdOut = open(data,O_CREAT | O_WRONLY, 0666);
+      dup2(stdOut,1);
+      close(stdOut);
+      execlp("./ag","./ag",NULL);
+      _exit(-1);
+    }
 
-          pid2=fork();
-          if(pid2==0){
-            execlp("./ag","./ag",lista[i],nameOfFile,NULL);
-            _exit(-1);
+
+    int pipeToChild[numPipes][2];
+    for(int i = 0; i < numPipes; i++) {
+      pipe(pipeToChild[i]);
+    }
+
+
+  // CRIAR OS AGREGADORES INTERMÉDIOS
+   int pid = fork();
+    // filho cria sub-agregadores
+    if (pid == 0) {
+      for(int i = 0; i < numPipes; i++) {
+        int agregador = fork();
+        if (agregador == 0) {
+          // redirecionamento do pipe que liga ao pai
+          dup2(pipeToChild[i][0],0);
+          for(int j=0;j<numPipes;j++){
+            close(pipeToChild[j][0]);
+            close(pipeToChild[j][1]);
           }
 
-          int res=open(nameOfFile,O_WRONLY);
-
-          int lido=0;
-          fd= open("./files/vendas",O_RDONLY,0600);
-          lseek(fd,i*v,SEEK_SET);
-          while(lido<v){
-              n=readln(fd,buf,50);
-              lido+=n;
-              write(res,buf,n);
-          }
-            close(res);
-            _exit(0);
-          }
+         int stout = open("subagregacoes", O_WRONLY);
+          if (stout == -1)
+              perror("open subagregacoes");
+          dup2(stout,1);
+          close(stout);
+          if (execlp("./ag","./ag",NULL) == -1)
+            perror("execlp");
+          _exit(-1);
+        }
       }
-      int op=open("porfavor",O_RDONLY);
-      char baba[200];
-      int nn;
-      while((nn=readln(op,baba,200))>0){
-        write(1,baba,nn);
+    }
+
+    // PAI ESCREVE PARA OS AGREGADORES INTERMEDIOS
+    else {
+      // unused read of pipe
+      for(int i = 0; i < numPipes; i++) {
+        close(pipeToChild[i][0]);
       }
-}
+      int vendas_fd = open("./files/vendas",O_RDONLY,0666);
+      lseek(vendas_fd,lido,SEEK_SET);
+      char buf[500];
+      int currentPipe=0;
+      int n;
+
+      while((n=readln(vendas_fd,buf,500))>0){
+          write(pipeToChild[currentPipe][1],buf,n);
+          currentPipe=(currentPipe+1)%(numPipes);
+      }
+      close(vendas_fd);
+      for(int i = 0; i < numPipes; i++) {
+        close(pipeToChild[i][1]);
+      }
+      lido=size;
+    }
+  }
+
 
 int length(char * s) {
     int i;
@@ -257,6 +297,8 @@ int length(char * s) {
 }
 
 int main() {
+
+  /*
     int i, f, c, status;
     int res;
     char *nome = malloc(12 * sizeof(char));
@@ -298,7 +340,7 @@ int main() {
         perror("pipe");
     }
     int pipe = open("pipe", O_RDONLY, 0666);
-    
+
     int filho;
     while((res = read(pipe, buffer, 200)) > 0){
         token[0] = strtok(buffer, ":");
@@ -328,17 +370,17 @@ int main() {
     close(pipe);
     unlink("./pipe");
 
-/*
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-  insere_venda(2,2,10.1);
-
-  agrega();
 */
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+  insere_venda(1000,1000,1000);
+
+  lido=0;
+  agrega();
+
     return 0;
 }
