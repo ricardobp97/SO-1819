@@ -12,6 +12,8 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
+char *token[2];
+
 char* getTime(){
     time_t rawtime;
     struct tm * tf;
@@ -257,36 +259,37 @@ int length(char * s) {
 int main() {
     int i, f, c, status;
     int res;
-    char * token[2];
-    char *nomes[11];
+    char *nome = malloc(12 * sizeof(char));
+    char **pt;
     char buffer[200];
-
     for(i=0; i<11; i++){
         // 1 pipe por cada filho!
-        snprintf(nomes[i],4,"%d",i);
-        if(mkfifo(nomes[i], 0666) == -1){
+        //snprintf(nomes[i],12,"%d",i);
+        pt = &nome;
+        snprintf(*pt,12,"%d",i);
+        if(mkfifo(nome, 0666) == -1){
             perror("pipes filhos");
         }
         f = fork();
         // codigo de cada filho!!
         if(f == 0){
             int n, cliente;
-            int pp = open(nomes[i], O_RDONLY, 0666);
+            int pp = open(nome, O_RDONLY, 0666);
             char buf[100];
             char *tok[2];
             char *resposta = malloc(50 * sizeof(char));
-            char ** pt = &resposta;
+            char **ptr = &resposta;
             while((n = read(pp, buf, 100)) > 0){
-                tok[0] = strtok(buffer, ":");
+                tok[0] = strtok(buf, ":");
                 tok[1] = strtok(NULL, ":");
+                printf("2 -> %s:%s\n",tok[0],tok[1]);
                 cliente = open(tok[0],O_WRONLY, 0666);
                 if(cliente == -1) perror("erro abrir pipe do cliente");
-                processa_instrucao(tok[1],pt);
+                processa_instrucao(tok[1],ptr);
                 write(cliente,resposta,length(resposta));
                 close(cliente);
             }
             close(pp);
-            free(pt);
             _exit(i);
         }
     }
@@ -300,6 +303,7 @@ int main() {
     while((res = read(pipe, buffer, 200)) > 0){
         token[0] = strtok(buffer, ":");
         token[1] = strtok(NULL, ":");
+        snprintf(*pt,res,"%s:%s",token[0],token[1]);
             if(token[0] && token[1]){
                 c = atoi(strtok(token[1]," "));
                 if(0 <= c && c < 10) filho = open("0", O_APPEND || O_WRONLY, 0666);
@@ -313,7 +317,7 @@ int main() {
                 if(81 <= c && c < 90) filho = open("8", O_APPEND || O_WRONLY, 0666);
                 if(91 <= c && c < 100) filho = open("9", O_APPEND || O_WRONLY, 0666);
                 if(c >= 100) filho = open("10", O_APPEND || O_WRONLY, 0666);
-                write(filho,buffer,res);
+                write(filho,*pt,res);
                 close(filho);
             }
     }
