@@ -8,9 +8,12 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <signal.h>
+#include <sys/types.h>
 #include "headers/stock.h"
 #include "headers/artigo.h"
 #include "headers/venda.h"
+
 
 char *token[2];
 int lido;
@@ -36,7 +39,7 @@ Stock new_stock (int c, int q) {
 int getStock(int c){
     int r, res;
     Stock s;
-    int fd = open("./files/stocks", O_RDONLY, 0600);
+    int fd = open("./files/stocks", O_RDONLY, 0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     res = read(fd,&s, sizeof(Stock));
     close(fd);
@@ -81,7 +84,7 @@ int isDidigt(char * s) {
 
 void set_stock(int c, int q){
     Stock s = new_stock(c,q);
-    int fd = open("./files/stocks", O_WRONLY, 0600);
+    int fd = open("./files/stocks", O_WRONLY, 0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     write(fd,&s,sizeof(Stock));
     close(fd);
@@ -91,8 +94,8 @@ void insere_venda (int c, int q, int m) {
     char buf[50];
     int lido;
     lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
-    int fd = open("./files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0600);
-	write(fd,buf,lido);
+    int fd = open("./files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0666);
+	  write(fd,buf,lido);
     close(fd);
 }
 
@@ -101,7 +104,7 @@ void insere_venda (int c, int q, int m) {
 int efetua_venda (int c, int q) {
     int r = -1, res;
     Stock novo;
-    int fdS = open("./files/stocks", O_RDONLY, 0600);
+    int fdS = open("./files/stocks", O_CREAT| O_RDONLY, 0666);
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
     res = read(fdS,&novo, sizeof(Stock));
     close(fdS);
@@ -128,7 +131,7 @@ int efetua_venda (int c, int q) {
 int update_stock (int c, int q) {
     int r, res;
     Stock novo;
-    int fd = open("./files/stocks", O_RDONLY, 0600);
+    int fd = open("./files/stocks", O_RDONLY, 0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     res = read(fd,&novo, sizeof(Stock));
     close(fd);
@@ -198,7 +201,7 @@ int readln(int fildes, char *buf, int maxBytes){
   return i;
 }
 
-void agrega(){
+void agrega(int signum){
 
   pid_t pidW=0;
 
@@ -298,6 +301,22 @@ int length(char * s) {
 
 int main() {
 
+    pid_t pid=getpid();
+    int d;
+    int fd=open("pidServ",O_CREAT | O_WRONLY,0666);
+    write(fd,&pid,sizeof(pid));
+    close(fd);
+    fd=open("pidServ",O_CREAT | O_RDONLY,0666);
+    read(fd,&d,sizeof(d));
+    printf("%d\n",d );
+    close(fd);
+
+    if( signal(SIGUSR1,agrega) == SIG_ERR){
+      perror("Signal failed");
+    }
+
+
+
   /*
     int i, f, c, status;
     int res;
@@ -371,6 +390,7 @@ int main() {
     unlink("./pipe");
 
 */
+/*
   insere_venda(1000,1000,1000);
   insere_venda(1000,1000,1000);
   insere_venda(1000,1000,1000);
@@ -381,6 +401,7 @@ int main() {
 
   lido=0;
   agrega();
+  */
 
     return 0;
 }
