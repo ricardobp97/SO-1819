@@ -306,16 +306,10 @@ int main() {
     int fd=open("pidServ",O_CREAT | O_WRONLY,0666);
     write(fd,&pid,sizeof(pid));
     close(fd);
-    fd=open("pidServ",O_CREAT | O_RDONLY,0666);
-    read(fd,&d,sizeof(d));
-    printf("%d\n",d );
-    close(fd);
 
     if( signal(SIGUSR1,agrega) == SIG_ERR){
       perror("Signal failed");
     }
-
-
 
   /*
     int i, f, c, status;
