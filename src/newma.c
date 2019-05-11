@@ -24,19 +24,19 @@ void verificaCodigoGLobal(){
 }
 
 off_t insereString(char* nome){
-	printf("Nome -> %s\n", nome);
-	char c = ' ';
+	int i = strlen(nome) + 2;
+	char* s = malloc(i * sizeof(char));
+	i = snprintf(s,i,"%s ",nome);
     int fds = open("./files/strings", O_CREAT | O_APPEND | O_WRONLY, 0666);
-    off_t pos = lseek(fds,0,SEEK_END);
-    write(fds,nome,strlen(nome));
-    write(fds,&c,1);
+	off_t pos = lseek(fds,0,SEEK_END);
+    write(fds,s,i);
 	close(fds);
+	free(s);
 	return pos;
 }
 
 void insereArtigo(char* nome, int preco, char** out){
 	off_t pos = insereString(nome);
-	printf("Posicao -> %jd\n",pos);
     Artigo a = novo_Artigo(codigoGLOBAL,pos,preco);
     int fda = open("./files/artigos", O_CREAT | O_WRONLY, 0666);
     lseek(fda,codigoGLOBAL * sizeof(Artigo),SEEK_SET);
@@ -84,7 +84,6 @@ void alteraNome(int cod, char* nome) {
 	if(cod >= codigoGLOBAL) write(1,"Artigo inexistente\n",20);
 	else{
 		off_t pos = insereString(nome);
-		printf("Posicao -> %jd\n",pos);
         Artigo a = novo_Artigo(cod,pos,getPreco(cod));
         int fd = open("./files/artigos",O_CREAT | O_WRONLY, 0666);
         lseek(fd,cod * sizeof(Artigo),SEEK_SET);
@@ -320,8 +319,8 @@ void compactador(){
 int main (){
     int res;
     char buf[200];
-    char* out = malloc(25 * sizeof(char));
-    char** pt = &out;
+	char* out = malloc(25 * sizeof(char));
+	char** pt = &out;
     // Carregar Lista
 
     while((res = read(0, buf, 200)) > 0){
@@ -332,7 +331,7 @@ int main (){
 			token_nome = strtok(NULL," ");
 			token_preco = strtok(NULL," ");
             int preco = atoi(token_preco);
-            verificaCodigoGLobal();
+			verificaCodigoGLobal();
             insereArtigo(token_nome,preco,pt);
             write(1,out,25);
         }
@@ -353,8 +352,8 @@ int main (){
 			token_cod = strtok(buf," ");
 			token_cod = strtok(NULL," ");
 			token_nome = strtok(NULL," ");
-            int cod = atoi(token_cod);
-            alteraNome(cod,token_nome);
+			int cod = atoi(token_cod);
+			alteraNome(cod,token_nome);
             // Verificar 20% e executar compactacao
             // se necessario
         }
@@ -364,7 +363,7 @@ int main (){
         }
     }
     // guardarLista();
-    
+    free(out);
     
     /*
 	int fd = open(argv[1],O_RDONLY,0666);
