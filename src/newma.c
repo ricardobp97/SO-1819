@@ -445,39 +445,72 @@ void compactador(){
 	//rename("./files/stringsv2","./files/strings");
 }
 */
-/*
-void getString(off_t p, char** n){
-	char c;
-	int i = 0;
+
+void getString(off_t p, char **pt){
+	char* nome = malloc(200 * sizeof(char));
+	int res, i = 0;
 	int fd = open("./files/strings",O_RDONLY ,0666);
 	lseek(fd,p,SEEK_SET);
-	while( read(fd,&c,1) > 0 ){
-		if(c == ' '){
+	while(1){
+		res = read(fd, &nome[i],1);
+		if(res <= 0){
 			close(fd);
 			break;
 		}
-		else{
-			*n[i] = c;
-			i++;
+		if(nome[i] == ' '){
+			nome[i] = '\0';
+			close(fd);
+			*pt = nome;
+			break;
 		}
+		i++;
 	}
-	close(fd);
 }
 
 void compactador(){
-	int i;
-	Artigo a;
-	char* nome = malloc(1000 * sizeof(char));
+	tamanhoTotal = 0;
+	tamanhoDesperdicado = 0;
+	int i, fd, fd2;
+	char c = ' ';
+	off_t pos;
 	size_t t;
+	Artigo a;
+	char* nome = malloc(200 * sizeof(char));
+
 	for(i = 0; i < codigoGLOBAL; i++){
-		int fd1 = open("./files/artigos",O_RDONLY ,0666);
-		lseek(fd1,i * sizeof(Artigo),SEEK_SET);
-		read(fd1, &a, sizeof(Artigo)));
-		t = getStringTam(a.posicao,&nome);
-    }
-    close(fd);
+		// Ir buscar o artigo i
+		fd = open("./files/artigos",O_RDONLY ,0666);
+		lseek(fd,i * sizeof(Artigo),SEEK_SET);
+		read(fd, &a, sizeof(Artigo));
+		// Ir buscar o nome do artigo
+		getString(a.posicao,&nome);
+		// Criar um novo ficheiro strings
+		// Escrever no novo apenas as strings atualizadas
+		fd2 = open("./files/stringsv2",O_CREAT | O_WRONLY ,0666);
+		pos = lseek(fd2,0,SEEK_END);
+		printf("Pos Nova -> %ld\n", pos);
+		t = strlen(nome);
+		write(fd2,nome,t);
+		write(fd2,&c,1);
+		tamanhoTotal += t;
+		// Atualizar posicao no artigo
+		Artigo novo = malloc(sizeof(Artigo));
+		novo.codigo = a.codigo;
+		printf("Cod %d\n",novo.codigo);
+		novo.posicao = pos;
+		printf("Pos %d\n",novo.posicao);
+		novo.preco = a.preco;
+		printf("Preco %d\n",novo.preco);
+		lseek(fd,((novo.codigo) * sizeof(Artigo)),SEEK_SET);
+		write(fd,&novo,sizeof(Artigo));
+		close(fd);
+		close(fd2);
+	}
+	
+	unlink("./files/strings");
+	rename("./files/stringsv2","./files/strings");
 }
-*/
+
 int main (){
 
 	char buf[1000];
@@ -528,7 +561,7 @@ int main (){
 			alteraNome(cod,token_nome);
 			if(necessitaComp()){
 				printf("Precisa!!!\n");
-				//compactador();
+				compactador();
 			}
 		}
 	}
