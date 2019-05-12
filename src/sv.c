@@ -14,6 +14,7 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
+#define SIZELINE 500
 
 char *token[2];
 int lido;
@@ -25,7 +26,7 @@ char* getTime(){
     time ( &rawtime );
     static char tempo[60];
     tf = localtime ( &rawtime );
-    snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
+    sprintf(tempo,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
     return tempo;
 }
 
@@ -39,7 +40,7 @@ Stock new_stock (int c, int q) {
 int getStock(int c){
     int r, res;
     Stock s;
-    int fd = open("./files/stocks", O_RDONLY, 0666);
+    int fd = open("files/stocks", O_RDONLY, 0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     res = read(fd,&s, sizeof(Stock));
     close(fd);
@@ -55,7 +56,7 @@ int getStock(int c){
 int getPrecoArt (int c) {
     int p;
     Artigo a;
-    int fd = open("./files/artigos",O_RDONLY,0666);
+    int fd = open("files/artigos",O_RDONLY,0666);
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
     read(fd,&a,sizeof(Artigo));
     close(fd);
@@ -66,7 +67,11 @@ int getPrecoArt (int c) {
 int artigo_existe(int c) {
     int r;
     Artigo a;
-    int fd = open("./files/artigos",O_RDONLY,0666);
+    int fd = open("files/artigos",O_RDONLY,0666);
+    if(fd==-1){
+      perror("abrir artigos");
+      return 1;
+    }
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
     r = read(fd,&a,sizeof(Artigo));
     close(fd);
@@ -84,19 +89,29 @@ int isDidigt(char * s) {
 
 void set_stock(int c, int q){
     Stock s = new_stock(c,q);
-    int fd = open("./files/stocks", O_WRONLY, 0666);
-    lseek(fd,c * sizeof(Stock),SEEK_SET);
-    write(fd,&s,sizeof(Stock));
-    close(fd);
+    int fd = open("files/stocks", O_WRONLY, 0666);
+    if(fd==-1){
+      perror("abrir stocks");
+    }
+    else{
+      lseek(fd,c * sizeof(Stock),SEEK_SET);
+      write(fd,&s,sizeof(Stock));
+      close(fd);
+    }
 }
 
 void insere_venda (int c, int q, int m) {
     char buf[50];
     int lido;
-    lido=snprintf(buf,50,"%d %d %d\n",c,q,m);
-    int fd = open("./files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0666);
-	  write(fd,buf,lido);
-    close(fd);
+    lido=sprintf(buf,"%d %d %d\n",c,q,m);
+    int fd = open("files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0666);
+    if(fd==-1){
+      perror("abrir vendas");
+    }
+    else{
+	     write(fd,buf,lido);
+       close(fd);
+    }
 }
 
 // quantidade negativa -> alterar stocks,
@@ -104,25 +119,33 @@ void insere_venda (int c, int q, int m) {
 int efetua_venda (int c, int q) {
     int r = -1, res;
     Stock novo;
-    int fdS = open("./files/stocks", O_CREAT| O_RDONLY, 0666);
+    int qvenda;
+    int fdS = open("files/stocks", O_CREAT| O_RDONLY, 0666);
+    if(fdS==-1){
+      perror("abrir stock");
+      return -1;
+    }
     lseek(fdS,c * sizeof(Stock),SEEK_SET);
     res = read(fdS,&novo, sizeof(Stock));
     close(fdS);
+    //se existir stock
     if(res > 0){
-        if(novo.quantidade > 0){
-            int qvenda;
-            if(novo.quantidade >= q){
-                qvenda = q;
-                r = novo.quantidade - q;
-            }
-            else{
-                qvenda = novo.quantidade;
-                r = 0;
-            }
-            set_stock(c,r);
-            int total = qvenda * getPrecoArt(c);
-            insere_venda(c,qvenda,total);
-        }
+      if(novo.quantidade >= abs(q)){
+        qvenda = -q;
+        r = novo.quantidade + q;
+      }
+      else{
+          qvenda = novo.quantidade;
+          r=0;
+    }
+    set_stock(c,r);
+    int total = qvenda * getPrecoArt(c);
+    insere_venda(c,qvenda,total);
+}
+    //se não existir stock
+    else{
+      set_stock(c,q);
+      r=0;
     }
     return r;
 }
@@ -130,13 +153,17 @@ int efetua_venda (int c, int q) {
 // quantidade positiva -> alterar stocks
 int update_stock (int c, int q) {
     int r, res;
-    Stock novo;
-    int fd = open("./files/stocks", O_RDONLY, 0666);
+    Stock antigo;
+    int fd = open("files/stocks", O_RDONLY, 0666);
+    if(fd==-1){
+      perror("abrir stock");
+      return -1;
+    }
     lseek(fd,c * sizeof(Stock),SEEK_SET);
-    res = read(fd,&novo, sizeof(Stock));
+    res = read(fd,&antigo, sizeof(Stock));
     close(fd);
     if(res > 0){
-        r = novo.quantidade + q;
+        r = antigo.quantidade + q;
         set_stock(c,r);
     }
     else{
@@ -146,9 +173,55 @@ int update_stock (int c, int q) {
     return r;
 }
 
-void processa_instrucao (char* s, char** pt) {
-    int stock = 0;
-    char * tok = strtok(s," ");
+int writeOutput(char* res,int lido,char* pipe){
+  //int fd=open(pipe,O_WRONLY);
+  write(1,res,lido);
+  return 0;
+}
+
+
+int processa_instrucao (char* buf) {
+    int stock, preco;
+    stock=preco=0;
+    char res[300];
+    int cod,w=0;
+    char * quant;
+    // separar argumentos
+    char * saveptr;
+    char* tok= strtok_r(buf,":",&saveptr);
+    char* pipe=strtok_r(NULL,":",&saveptr);
+    cod=atoi(strtok_r(tok," ",&saveptr));
+    quant=strtok_r(NULL," ",&saveptr);
+    if(artigo_existe(cod) > 0){
+      //consulta de preço e stock
+      if(quant==NULL){
+        int preco = getPrecoArt(cod);
+        stock = getStock(cod);
+        w= sprintf(res,"Stock: %d || Preco: %d\n",stock,preco);
+      }
+      else {
+        int quantidade=atoi(quant);
+        //adicionar stock
+        if(quantidade>0){
+            stock = update_stock(cod,quantidade);
+            w = sprintf(res,"Novo Stock: %d\n",stock);
+        }
+        else{
+          //venda
+          stock = efetua_venda(cod,quantidade);
+          w = sprintf(res,"Novo Stock: %d\n",stock);
+        }
+      }
+    }
+    else {
+      perror("Código não existe");
+      printf("%d\n",cod );
+      return -1;
+    }
+    writeOutput(res,w,pipe);
+    return 0;
+}
+/*
     if(tok != NULL && isDidigt(tok)){
         int c = atoi(tok);
         if(artigo_existe(c) > 0){
@@ -160,12 +233,8 @@ void processa_instrucao (char* s, char** pt) {
                     snprintf(*pt,25,"Novo Stock: %d\n",stock);
                 }
                 else{
-                    printf("q  %d\n", q);
                     stock = efetua_venda(c,-q);
-                    if(stock < 0)
-                        snprintf(*pt,26,"Nao ha stock disponivel!\n");
-                    else
-                        snprintf(*pt,25,"Novo Stock: %d\n",stock);
+                    sprintf(res,"Novo Stock: %d\n",stock);
                 }
             }
             else{
@@ -174,22 +243,22 @@ void processa_instrucao (char* s, char** pt) {
                 stock = getStock(c);
                 snprintf(*pt,30,"Stock: %d || Preco: %d\n",stock,preco);
             }
-        }
-        else{
+      }
+      else{
             snprintf(*pt,21,"Artigo não existe!\n");
-        }
+      }
     }
     else{
         snprintf(*pt,20,"Código Inválido!\n");
     }
-}
+    */
 
 int readln(int fildes, char *buf, int maxBytes){
   char byte;
   int i = 0;
   int res;
   while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
-    if (byte != '\n'){
+    if (byte != '\n' && byte != EOF){
       buf[i] = byte;
       i += res;
     }
@@ -206,7 +275,7 @@ void agrega(int signum){
   pid_t pidW=0;
 
   char* data = getTime();
-    int fd = open("./files/vendas",O_RDONLY,0666);
+    int fd = open("files/vendas",O_RDONLY,0666);
     int size = lseek(fd,0,SEEK_END);
     close(fd);
     int numPipes=4;
@@ -301,22 +370,71 @@ int length(char * s) {
 
 int main() {
 
+    int numPipes=10;
     pid_t pid=getpid();
-    int d;
-    int fd=open("pidServ",O_CREAT | O_WRONLY,0666);
+    char* tok;
+    //ficheiro com o pid do servidor
+    int fd=open("pidServ", O_CREAT | O_WRONLY,0666);
     write(fd,&pid,sizeof(pid));
     close(fd);
 
+    //criação pipe para comunicaçaõ com cv
+    if(mkfifo("pipeServ",0666)==-1)
+      perror("Criação do pipe central");
+
+    //definição handler para pedido de agregação
     if( signal(SIGUSR1,agrega) == SIG_ERR){
       perror("Signal failed");
     }
 
+    //criação de 10 pipes anónimos para comunicação entre pai e filhos
+    int pipeToChild[numPipes][2];
+    for(int i = 0; i < numPipes; i++) {
+        pipe(pipeToChild[i]);
+    }
+
+    int f=fork();
+    if (f==0){
+      for(int i=0;i<numPipes;i++){
+        int p=fork();
+        if(p==0){
+          for(int j=0;j<numPipes;j++){
+            close(pipeToChild[i][1]);
+          }
+          char buf[SIZELINE];
+          while(1){
+            while((readln(pipeToChild[i][0],buf,SIZELINE))>0){
+
+            processa_instrucao(strdup(buf));
+            }
+          }
+        }
+      }
+    }
+
+    //pai dos filhos
+    for(int j=0;j<numPipes;j++){
+      close(pipeToChild[j][0]);
+    }
+    char buf[SIZELINE];
+    int n=0;
+    int pipe= open("pipeServ",O_RDONLY);
+    while(1){
+      while((n=readln(pipe,buf,SIZELINE))>0){
+        char * line=strdup(buf);
+        char * saveptr;
+        tok=strtok_r(buf," ",&saveptr);
+        int cod= atoi(tok);
+        int res=cod%10;
+        write(pipeToChild[res][1],line,n);
+      }
+    }
+
   /*
-    int i, f, c, status;
-    int res;
-    char *nome = malloc(12 * sizeof(char));
-    char **pt;
-    char buffer[200];
+    i
+
+
+
     for(i=0; i<11; i++){
         // 1 pipe por cada filho!
         //snprintf(nomes[i],12,"%d",i);

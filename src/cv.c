@@ -10,41 +10,32 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
-char* getTime(){
-    time_t rawtime;
-    struct tm * tf;
-  
-    time ( &rawtime );
-    static char tempo[60];
-    tf = localtime ( &rawtime );
-    snprintf(tempo,60,"%d-%d-%dT%d-%d-%d",tf->tm_year+1900,tf->tm_mon,tf->tm_mday,tf->tm_hour,tf->tm_min,tf->tm_sec);
-    return tempo;
+#define SIZELINE 500
+
+int readln(int fildes, char *buf, int maxBytes){
+  char byte;
+  int i = 0;
+  int res;
+  while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
+    if (byte != '\n' && byte!=EOF){
+      buf[i] = byte;
+      i += res;
+    }
+    else {
+        buf[i++] = '\n';
+        return i;
+    }
+  }
+  return i;
 }
 
-ssize_t readln(int fildes, void *buf, size_t nbyte) {
 
-	char* b = buf;
-	int i = 0;
-	while(i < nbyte) {
-		int n = read(fildes, &b[i],1);
-		if(n <= 0)
-			break;
-		if(b[i] == '\n') {
-			b[i] = '\n';
-			i++;
-			break;
-		}
-		i++;
-	}
-	return i;
+char* getPid(){
+    int pid=getpid();
+    char buf[200];
+    sprintf(buf,"%d",pid);
+    return strdup(buf);
 }
-
-int length(char * s) {
-    int i;
-    for(i=0 ; s[i]!='\0'; i++);
-    return i;
-}
-
 // Cliente de Vendas:
 // Abre o pipe do servidor para lhe fornececer input
 // Cria o seu pipe para receber output do servidor
@@ -53,35 +44,36 @@ int length(char * s) {
 // Mensagens iniciadas com "mypipe:" -> instrucao
 // relativa ao respetivo cliente que detem o pipe
 int main () {
-    int res,f,i;
-    char * inst = malloc(100 * sizeof(char));
-    char buffer[100];
-    char *mypipe = strtok(getTime(),"\n");
-    int pipe = open("pipe", O_WRONLY, 0666);
+    int res,f,n;
+    char inst[SIZELINE];
+    char buffer[SIZELINE];
+    char* tok;
+    char *mypipe = getPid();
+
+    int pipe = open("pipeServ", O_WRONLY);
 
     if(mkfifo(mypipe, 0666) == -1){
         perror("pipe cliente");
     }
-
+		/*
     if((f = fork()) == 0){
         int pp = open(mypipe, O_RDONLY, 0666);
         int n;
         char buf[100];
         while((n = read(pp, buf, 100)) > 0){
-            write(1,buf,n);
-            write(1,"\n",2);
+            printf("%s\n",buf );
         }
         close(pp);
         exit(0);
     }
-    
-    while((res = readln(0, buffer, 100)) > 0){
-        i = length(mypipe) + res;
-        snprintf(inst,i+1,"%s:%s\n",mypipe,buffer);
-        write(pipe,inst,i+1);
+		*/
+    while((res = readln(0, buffer, SIZELINE)) > 0){
+				char* safepointer;
+        tok=strtok_r(buffer,"\n",&safepointer);
+        n=sprintf(inst,"%s:%s\n",tok,mypipe);
+        write(pipe,inst,n);
     }
-    
     close(pipe);
-    snprintf(inst,100,"./%s",mypipe);
-    unlink(inst);
+  //  snprintf(inst,100,"./%s",mypipe);
+  //  unlink(inst);
 }

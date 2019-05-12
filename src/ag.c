@@ -20,8 +20,6 @@ char fileName[10];
 Par agregados[SIZEARRAY];
 
 
-
-
 int readln(int fildes, char *buf, int maxBytes){
   char byte;
   int i = 0;
