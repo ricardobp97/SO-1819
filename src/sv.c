@@ -14,7 +14,7 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
-#define SIZELINE 500
+#define SIZELINE 256
 
 char *token[2];
 int lido;
@@ -40,7 +40,7 @@ Stock new_stock (int c, int q) {
 int getStock(int c){
     int r, res;
     Stock s;
-    int fd = open("files/stocks", O_RDONLY, 0666);
+    int fd = open("./files/stocks", O_RDONLY, 0666);
     lseek(fd,c * sizeof(Stock),SEEK_SET);
     res = read(fd,&s, sizeof(Stock));
     close(fd);
@@ -56,7 +56,7 @@ int getStock(int c){
 int getPrecoArt (int c) {
     int p;
     Artigo a;
-    int fd = open("files/artigos",O_RDONLY,0666);
+    int fd = open("./files/artigos",O_RDONLY,0666);
     lseek(fd,c * sizeof(Artigo),SEEK_SET);
     read(fd,&a,sizeof(Artigo));
     close(fd);
@@ -67,7 +67,7 @@ int getPrecoArt (int c) {
 int artigo_existe(int c) {
     int r;
     Artigo a;
-    int fd = open("files/artigos",O_RDONLY,0666);
+    int fd = open("./files/artigos",O_RDONLY,0666);
     if(fd==-1){
       perror("abrir artigos");
       return 1;
@@ -89,7 +89,7 @@ int isDidigt(char * s) {
 
 void set_stock(int c, int q){
     Stock s = new_stock(c,q);
-    int fd = open("files/stocks", O_WRONLY, 0666);
+    int fd = open("./files/stocks", O_WRONLY, 0666);
     if(fd==-1){
       perror("abrir stocks");
     }
@@ -104,7 +104,7 @@ void insere_venda (int c, int q, int m) {
     char buf[50];
     int lido;
     lido=sprintf(buf,"%d %d %d\n",c,q,m);
-    int fd = open("files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0666);
+    int fd = open("./files/vendas", O_CREAT| O_APPEND | O_WRONLY, 0666);
     if(fd==-1){
       perror("abrir vendas");
     }
@@ -120,8 +120,8 @@ int efetua_venda (int c, int q) {
     int r = -1, res;
     Stock novo;
     int qvenda;
-    int fdS = open("files/stocks", O_CREAT| O_RDONLY, 0666);
-    if(fdS==-1){
+    int fdS = open("./files/stocks", O_CREAT| O_RDONLY, 0666);
+    if(fdS == -1){
       perror("abrir stock");
       return -1;
     }
@@ -154,9 +154,9 @@ int efetua_venda (int c, int q) {
 int update_stock (int c, int q) {
     int r, res;
     Stock antigo;
-    int fd = open("files/stocks", O_RDONLY, 0666);
+    int fd = open("./files/stocks", O_CREAT | O_RDONLY, 0666);
     if(fd==-1){
-      perror("abrir stock");
+      perror("abrir stocki");
       return -1;
     }
     lseek(fd,c * sizeof(Stock),SEEK_SET);
@@ -174,8 +174,13 @@ int update_stock (int c, int q) {
 }
 
 int writeOutput(char* res,int lido,char* pipe){
-  //int fd=open(pipe,O_WRONLY);
-  write(1,res,lido);
+  pipe[strlen(pipe)-1]='\0';
+  int fd=open(pipe,O_WRONLY);
+  if(fd==-1) perror("output");
+  printf("%d\n",fd);
+  write(fd,res,lido);
+  close(fd);
+  printf("done");
   return 0;
 }
 
@@ -257,7 +262,7 @@ int readln(int fildes, char *buf, int maxBytes){
   char byte;
   int i = 0;
   int res;
-  while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
+  while (i < maxBytes && ((res = read(fildes,&byte,1)) > 0)){
     if (byte != '\n' && byte != EOF){
       buf[i] = byte;
       i += res;
@@ -372,10 +377,9 @@ int main() {
 
     int numPipes=10;
     pid_t pid=getpid();
-    char* tok;
     //ficheiro com o pid do servidor
     int fd=open("pidServ", O_CREAT | O_WRONLY,0666);
-    write(fd,&pid,sizeof(pid));
+    write(fd,&pid,sizeof(pid_t));
     close(fd);
 
     //criação pipe para comunicaçaõ com cv
@@ -404,12 +408,12 @@ int main() {
           char buf[SIZELINE];
           while(1){
             while((readln(pipeToChild[i][0],buf,SIZELINE))>0){
-
             processa_instrucao(strdup(buf));
             }
           }
         }
       }
+      _exit(0);
     }
 
     //pai dos filhos
@@ -423,97 +427,12 @@ int main() {
       while((n=readln(pipe,buf,SIZELINE))>0){
         char * line=strdup(buf);
         char * saveptr;
-        tok=strtok_r(buf," ",&saveptr);
+        char* tok=strtok_r(buf," ",&saveptr);
         int cod= atoi(tok);
-        int res=cod%10;
-        write(pipeToChild[res][1],line,n);
+      int res=cod%10;
+      write(pipeToChild[res][1],line,n);
       }
     }
-
-  /*
-    i
-
-
-
-    for(i=0; i<11; i++){
-        // 1 pipe por cada filho!
-        //snprintf(nomes[i],12,"%d",i);
-        pt = &nome;
-        snprintf(*pt,12,"%d",i);
-        if(mkfifo(nome, 0666) == -1){
-            perror("pipes filhos");
-        }
-        f = fork();
-        // codigo de cada filho!!
-        if(f == 0){
-            int n, cliente;
-            int pp = open(nome, O_RDONLY, 0666);
-            char buf[100];
-            char *tok[2];
-            char *resposta = malloc(50 * sizeof(char));
-            char **ptr = &resposta;
-            while((n = read(pp, buf, 100)) > 0){
-                tok[0] = strtok(buf, ":");
-                tok[1] = strtok(NULL, ":");
-                printf("2 -> %s:%s\n",tok[0],tok[1]);
-                cliente = open(tok[0],O_WRONLY, 0666);
-                if(cliente == -1) perror("erro abrir pipe do cliente");
-                processa_instrucao(tok[1],ptr);
-                write(cliente,resposta,length(resposta));
-                close(cliente);
-            }
-            close(pp);
-            _exit(i);
-        }
-    }
-    // Codigo pai
-    if(mkfifo("pipe", 0666) == -1){
-        perror("pipe");
-    }
-    int pipe = open("pipe", O_RDONLY, 0666);
-
-    int filho;
-    while((res = read(pipe, buffer, 200)) > 0){
-        token[0] = strtok(buffer, ":");
-        token[1] = strtok(NULL, ":");
-        snprintf(*pt,res,"%s:%s",token[0],token[1]);
-            if(token[0] && token[1]){
-                c = atoi(strtok(token[1]," "));
-                if(0 <= c && c < 10) filho = open("0", O_APPEND || O_WRONLY, 0666);
-                if(11 <= c && c < 20) filho = open("1", O_APPEND || O_WRONLY, 0666);
-                if(21 <= c && c < 30) filho = open("2", O_APPEND || O_WRONLY, 0666);
-                if(31 <= c && c < 40) filho = open("3", O_APPEND || O_WRONLY, 0666);
-                if(41 <= c && c < 50) filho = open("4", O_APPEND || O_WRONLY, 0666);
-                if(51 <= c && c < 60) filho = open("5", O_APPEND || O_WRONLY, 0666);
-                if(61 <= c && c < 70) filho = open("6", O_APPEND || O_WRONLY, 0666);
-                if(71 <= c && c < 80) filho = open("7", O_APPEND || O_WRONLY, 0666);
-                if(81 <= c && c < 90) filho = open("8", O_APPEND || O_WRONLY, 0666);
-                if(91 <= c && c < 100) filho = open("9", O_APPEND || O_WRONLY, 0666);
-                if(c >= 100) filho = open("10", O_APPEND || O_WRONLY, 0666);
-                write(filho,*pt,res);
-                close(filho);
-            }
-    }
-
-    for(i=0; i<11; i++){
-        wait(&status);
-    }
-    close(pipe);
-    unlink("./pipe");
-
-*/
-/*
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-  insere_venda(1000,1000,1000);
-
-  lido=0;
-  agrega();
-  */
 
     return 0;
 }

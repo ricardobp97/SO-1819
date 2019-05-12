@@ -10,14 +10,15 @@
 #include "headers/artigo.h"
 #include "headers/venda.h"
 
-#define SIZELINE 500
+#define SIZELINE 256
+
 
 int readln(int fildes, char *buf, int maxBytes){
   char byte;
   int i = 0;
   int res;
-  while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
-    if (byte != '\n' && byte!=EOF){
+  while (i < maxBytes && ((res = read(fildes,&byte,1)) > 0)){
+    if (byte != '\n' && byte != EOF){
       buf[i] = byte;
       i += res;
     }
@@ -52,11 +53,9 @@ int main () {
 
     int pipe = open("pipeServ", O_WRONLY);
 
-    if(mkfifo(mypipe, 0666) == -1){
-        perror("pipe cliente");
-    }
-		/*
-    if((f = fork()) == 0){
+    mkfifo(mypipe, 0666);
+
+    /*if((f = fork()) == 0){
         int pp = open(mypipe, O_RDONLY, 0666);
         int n;
         char buf[100];
@@ -65,15 +64,23 @@ int main () {
         }
         close(pp);
         exit(0);
-    }
-		*/
+    }*/
     while((res = readln(0, buffer, SIZELINE)) > 0){
 				char* safepointer;
         tok=strtok_r(buffer,"\n",&safepointer);
         n=sprintf(inst,"%s:%s\n",tok,mypipe);
         write(pipe,inst,n);
+        printf("%s\n",mypipe);
+        int me_pip = open(mypipe, O_RDONLY);
+        printf("%d\n",me_pip);
+        char buf[SIZELINE];
+        puts("waiting for anwser");
+        n = readln(me_pip,buf,SIZELINE);
+        write(1,buf,n);
+        close(me_pip);
     }
-    close(pipe);
-  //  snprintf(inst,100,"./%s",mypipe);
-  //  unlink(inst);
+    printf("FINAL\n", );
+  close(pipe);
+  unlink(mypipe);
+  return 0;
 }
