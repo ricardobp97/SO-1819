@@ -204,6 +204,15 @@ void guardarLista(){
 	close(fd);
 }
 
+void atualizaLista(){
+	L aux;
+	while(listaPosAntigas){
+		aux = listaPosAntigas;
+		listaPosAntigas = listaPosAntigas->prox;
+		free(aux);
+	}
+}
+
 void atualizaTamDes(off_t p){
 	size_t t = 0;
 	char a;
@@ -452,12 +461,13 @@ void getString(off_t p, char **pt){
 	int fd = open("./files/strings",O_RDONLY ,0666);
 	lseek(fd,p,SEEK_SET);
 	while(1){
-		res = read(fd, &nome[i],1);
+		res = read(fd,&nome[i],1);
 		if(res <= 0){
 			close(fd);
 			break;
 		}
 		if(nome[i] == ' '){
+			i++;
 			nome[i] = '\0';
 			close(fd);
 			*pt = nome;
@@ -471,10 +481,10 @@ void compactador(){
 	tamanhoTotal = 0;
 	tamanhoDesperdicado = 0;
 	int i, fd, fd2;
-	char c = ' ';
+	//char c = ' ';
 	off_t pos;
 	size_t t;
-	Artigo a;
+	Artigo a, *novo;
 	char* nome = malloc(200 * sizeof(char));
 
 	for(i = 0; i < codigoGLOBAL; i++){
@@ -491,18 +501,18 @@ void compactador(){
 		printf("Pos Nova -> %ld\n", pos);
 		t = strlen(nome);
 		write(fd2,nome,t);
-		write(fd2,&c,1);
+		//write(fd2,&c,1);
 		tamanhoTotal += t;
 		// Atualizar posicao no artigo
-		Artigo novo = malloc(sizeof(Artigo));
-		novo.codigo = a.codigo;
-		printf("Cod %d\n",novo.codigo);
-		novo.posicao = pos;
-		printf("Pos %d\n",novo.posicao);
-		novo.preco = a.preco;
-		printf("Preco %d\n",novo.preco);
-		lseek(fd,((novo.codigo) * sizeof(Artigo)),SEEK_SET);
-		write(fd,&novo,sizeof(Artigo));
+		novo = malloc(sizeof(Artigo));
+		novo->codigo = a.codigo;
+		printf("Cod %d\n",novo->codigo);
+		novo->posicao = pos;
+		printf("Pos %ld\n",novo->posicao);
+		novo->preco = a.preco;
+		printf("Preco %d\n",novo->preco);
+		lseek(fd,((novo->codigo) * sizeof(Artigo)),SEEK_SET);
+		write(fd,novo,sizeof(Artigo));
 		close(fd);
 		close(fd2);
 	}
@@ -560,8 +570,8 @@ int main (){
 			int cod = atoi(token_cod);		
 			alteraNome(cod,token_nome);
 			if(necessitaComp()){
-				printf("Precisa!!!\n");
 				compactador();
+				atualizaLista();
 			}
 		}
 	}
