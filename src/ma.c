@@ -4,101 +4,43 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <sys/stat.h>
+#include <ctype.h>
 #include "headers/artigo.h"
 
 int codigoGLOBAL = -1 ;
 L listaPosAntigas = NULL;
-off_t tamanhoDesperdicado;
-off_t auxAlteraPos_x = 0;
+size_t tamanhoDesperdicado = 0;
+size_t tamanhoTotal = 0;
 
-off_t tamanhoString(){
-	int fd1 = open("./files/strings",O_RDONLY ,0666);
-	off_t r = lseek(fd1,0,SEEK_END);
-	return r;
-}
-
-L insereL(L l, off_t x){
-	L aux = malloc(sizeof(L));
-	aux->valor = x;
-	aux->prox = l;
-	
-	return aux;
-
-}
-
-int existeL(L l, off_t x){
-	L aux = malloc(sizeof(L));
-	aux = l;
-	int r;
-	if (l == NULL) return 0;
-	else {
-			 while(l!=NULL){
-			 	if (l->valor == x){
-			 		l= aux;
-			 		return 1;
-
-			 	} 
-			 	else {
-			 		  l = l->prox;
-			 		 }
-			}
-	}
-	l = aux;
-}
-
-L removeL(L l, off_t x){
-	printf("removeL: entrei\n");
-	L aux = malloc(sizeof(L));
-	L ant = malloc(sizeof(L));
-	aux = l;
-	ant = l;
-	int flag = 0;
-	while(l && flag != 1){
-		if (l->valor == x){
-			ant->prox = l->prox;
-			free(l);
-			flag = 1;
-			printf("removeL: removi\n");
-			}
-	else { ant = l;
-		   l = l->prox;
-		 }
-	}
-	ant = aux;
-	return aux;
-}
-
-int iniciaCodigoGLobal(){
+void verificaCodigoGLobal(){
 	off_t tamanho;
-	int fd1 = open("./files/artigos", O_RDONLY, 0666);
+	int fd1 = open("./files/artigos", O_CREAT | O_RDONLY, 0666);
     tamanho = lseek(fd1,0,SEEK_END);
     int tamanhoAux = (int)tamanho;
     ssize_t tamanhoArtigo = sizeof(Artigo);
     int tamanhoArtigoAux = (int)tamanhoArtigo;
-    codigoGLOBAL = tamanhoAux/tamanhoArtigoAux; 
+    codigoGLOBAL = tamanhoAux/tamanhoArtigoAux;
 }
 
-int iniciaFicheiros(){
-	open("./files/artigos",O_CREAT,0666);
-	open("./files/strings",O_CREAT,0666);
-	return 1;
-}
 
 int insereArtigo(char* nome, int preco){
 	char c = ' ';
-	int fd1 = open("./files/artigos",O_WRONLY | O_RDONLY, 0666);
-	int fd2 = open("./files/strings",O_WRONLY| O_RDONLY, 0666);
+	int fd1 = open("./files/artigos",O_CREAT | O_WRONLY | O_RDONLY, 0666);
+	int fd2 = open("./files/strings",O_CREAT | O_WRONLY | O_RDONLY, 0666);
 	lseek(fd1,0,SEEK_END);
 	off_t posAux = lseek(fd2,0,SEEK_END);
 	Artigo aux = novo_Artigo(codigoGLOBAL,posAux,preco);
 	write(fd1,&aux,sizeof(Artigo));
-	write(fd2,nome,strlen(nome));
+	size_t t = strlen(nome);
+	write(fd2,nome,t);
 	write(fd2,&c,1);
 	close(fd1);
 	close(fd2);
 	codigoGLOBAL++;
-	return 1;
+	tamanhoTotal += (t+1);
+	return (codigoGLOBAL - 1);
 }
 
 Artigo alteraPrecoAux (int cod){
@@ -113,9 +55,9 @@ Artigo alteraPrecoAux (int cod){
 }
 
 
-int alteraPreco(int cod,int pre){
-	if (cod > codigoGLOBAL) perror("Artigo inexistente");
-	else {
+void alteraPreco(int cod,int pre){
+	if(cod >= codigoGLOBAL) write(1,"Artigo inexistente!\n",21);
+	else{
 		int fd1 = open("./files/artigos",O_WRONLY ,0666);
 		Artigo a;
 		a = alteraPrecoAux(cod);
@@ -125,28 +67,75 @@ int alteraPreco(int cod,int pre){
     	lseek(fd1,cod * tamanhoArtigoAux,SEEK_SET);
     	write(fd1,&a,sizeof(Artigo));
     	close(fd1);
-		}
-	return 1;
+	}
 }
 
-void calculaDesperdicio(int cod){
-	int fd1 = open("./files/artigos",O_RDONLY ,0666);
-	int fd2 = open("./files/strings",O_RDONLY ,0666);
-	Artigo a;
-	off_t aux;
-	char c = 'r';
-	ssize_t tamanhoArtigo = sizeof(Artigo);
-    int tamanhoArtigoAux = (int)tamanhoArtigo;
-	lseek(fd1,cod * tamanhoArtigoAux,SEEK_SET);
-	read(fd1,&a,sizeof(Artigo));
-	aux = a.posicao;
-	lseek(fd2,aux,SEEK_SET);
-	while((read(fd2,&c,1))&&(c != ' ')){
-									tamanhoDesperdicado++;
-									   }
-	close(fd1);
-	close(fd2);
+void inserePos(off_t p){
+	L l = malloc(sizeof(L));
+	l->valor = p;
+	l->prox = listaPosAntigas;
+	listaPosAntigas = l;
+}
 
+void carregarTamanhos(){
+	int fd = open("./files/tamanho",O_CREAT | O_RDONLY,0666);
+	read(fd,&tamanhoDesperdicado, sizeof(size_t));
+	read(fd,&tamanhoTotal, sizeof(size_t));
+	close(fd);
+	unlink("./files/tamanho");
+}
+
+void guardarTamanhos(){
+	int fd = open("./files/tamanho",O_CREAT | O_APPEND | O_WRONLY ,0666);
+	write(fd,&tamanhoDesperdicado,sizeof(size_t));
+	write(fd,&tamanhoTotal,sizeof(size_t));
+	close(fd);
+}
+
+void carregarLista(){
+	int res;
+	off_t p;
+	int fd = open("./files/lista",O_CREAT | O_RDONLY,0666);
+	while((res = read(fd, &p, sizeof(off_t))) > 0){
+        inserePos(p);
+    }
+	close(fd);
+	unlink("./files/lista");
+}
+
+void guardarLista(){
+	int fd = open("./files/lista",O_CREAT | O_APPEND | O_WRONLY ,0666);
+	L aux;
+	off_t p;
+	while(listaPosAntigas){
+		p = listaPosAntigas->valor;
+		write(fd,&p,sizeof(off_t));
+		aux = listaPosAntigas;
+		listaPosAntigas = listaPosAntigas->prox;
+		free(aux);
+	}
+	close(fd);
+}
+
+void atualizaLista(){
+	L aux;
+	while(listaPosAntigas){
+		aux = listaPosAntigas;
+		listaPosAntigas = listaPosAntigas->prox;
+		free(aux);
+	}
+}
+
+void atualizaTamDes(off_t p){
+	size_t t = 0;
+	char a;
+	int fd = open("./files/strings",O_RDONLY ,0666);
+	lseek(fd,p,SEEK_SET);
+	while(a!= ' '){
+		t += read(fd, &a, sizeof(char));
+	}
+	close(fd);
+	tamanhoDesperdicado += t;
 }
 
 Artigo alteraNomeAux(int cod){
@@ -156,216 +145,191 @@ Artigo alteraNomeAux(int cod){
     int tamanhoArtigoAux = (int)tamanhoArtigo;
 	lseek(fd1,cod * tamanhoArtigoAux,SEEK_SET);
 	read(fd1,&a,sizeof(Artigo));
-	listaPosAntigas = insereL(listaPosAntigas,a.posicao);
-	calculaDesperdicio(cod);
+	atualizaTamDes(a.posicao);
+	inserePos(a.posicao);
+	//calculaDesperdicio(cod);
 	close(fd1);
 	return a;
-		
 }
 
-int alteraNome(int cod, char* n) {
-	if (cod > codigoGLOBAL) perror("Artigo inexistente");
-	else {
+void alteraNome(int cod, char* n) {
+	if(cod >= codigoGLOBAL) write(1,"Artigo inexistente!\n",21);
+	else{
 		Artigo a;
 		char c = ' ';
 		int fd1 = open("./files/artigos",O_WRONLY, 0666);
 		int fd2 = open("./files/strings",O_WRONLY| O_RDONLY, 0666);
 		a = alteraNomeAux(cod);
 		off_t posNova = lseek(fd2,0,SEEK_END);
-		write(fd2,n,strlen(n));
+		size_t t = strlen(n);
+		write(fd2,n,t);
 		write(fd2,&c,1);
-		a.posicao = posNova ;
+		tamanhoTotal += (t+1);
+		a.posicao = posNova;
 		ssize_t tamanhoArtigo = sizeof(Artigo);
     	int tamanhoArtigoAux = (int)tamanhoArtigo;
     	lseek(fd1,cod*tamanhoArtigoAux,SEEK_SET);
 		write(fd1,&a,sizeof(Artigo));
 		close(fd1);
 		close(fd2);
-		}
-
-	return 1;
-}
-
-
-Artigo alteraPosAux(int cod){
-	Artigo a;
-	if (cod > (codigoGLOBAL-1)){
-							a.preco = -1;
-							return a;
-						    }
-	else {	
-			int fd1 = open("./files/artigos",O_RDONLY ,0666);
-			ssize_t tamanhoArtigo = sizeof(Artigo);
-    		int tamanhoArtigoAux = (int)tamanhoArtigo;
-			lseek(fd1,cod * tamanhoArtigoAux,SEEK_SET);
-			read(fd1,&a,sizeof(Artigo));
-			close(fd1);
-			return a;
-		 }
-}
-
-int alteraPos(off_t pos, off_t decremento) {
-	int fd1 = open("./files/artigos",O_WRONLY, 0666);
-	int codigo = 0;
-	Artigo a;
-	a = alteraPosAux(codigo);
-	while(a.preco != -1 && a.posicao<pos) {
-		codigo++;
-		a = alteraPosAux(codigo);
 	}
-	a.posicao = a.posicao - (decremento + auxAlteraPos_x);
-	ssize_t tamanhoArtigo = sizeof(Artigo);
-    int tamanhoArtigoAux = (int)tamanhoArtigo;
-    lseek(fd1,codigo*tamanhoArtigoAux,SEEK_SET);
-	write(fd1,&a,sizeof(Artigo));
-	
-	
-	auxAlteraPos_x = auxAlteraPos_x + decremento;
-	close(fd1);
-
-	return 1;
 }
+
+int necessitaComp(){
+	double r = ((double)(tamanhoDesperdicado)) / ((double)(tamanhoTotal));
+	if(r >= 0.2 ) return 1;
+	else return 0;
+}
+
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
-
 	char* b = buf;
-
 	int i = 0; 
 
 	while(i < nbyte) {
-
 		int n = read(fildes, &b[i],1);
-
-		if(n <= 0) 
-			break;
-
-		if(b[i] == '\n') {
+		if(n <= 0) break;
+		if(b[i] == '\n'){
 			b[i] = '\0';
 			i++;
 			break;
 		}
-
 		i++;
-
 	}
-
 	return i;
 }
 
-int interpretador(){
-
-	int fd1 = open("./files/artigos",O_RDONLY,0666);
-	Artigo a;
-	while (read(fd1,&a,sizeof(Artigo))){
-			printf("Codigo = %d \n ",a.codigo);
-			printf("Posicao = %jd \n ",a.posicao);
-			printf("Preco = %d \n ",a.preco);
-			printf("\n");
+void getString(off_t p, char **pt){
+	char* nome = malloc(200 * sizeof(char));
+	int res, i = 0;
+	int fd = open("./files/strings",O_RDONLY ,0666);
+	lseek(fd,p,SEEK_SET);
+	while(1){
+		res = read(fd,&nome[i],1);
+		if(res <= 0){
+			close(fd);
+			break;
 		}
-	close(fd1);
+		if(nome[i] == ' '){
+			i++;
+			nome[i] = '\0';
+			close(fd);
+			*pt = nome;
+			break;
+		}
+		i++;
+	}
 }
 
+void atualizaArtigo(int cod, off_t pos, int pre){
+	Artigo a = novo_Artigo(cod,pos,pre);
+	int fd = fd = open("./files/artigos",O_WRONLY ,0666);
+	lseek(fd,cod * sizeof(Artigo),SEEK_SET);
+	write(fd,&a,sizeof(Artigo));
+	close(fd);
+}
 
 void compactador(){
-	int fd1 = open("./files/strings",O_RDONLY ,0666);
-	int fd2 = open("./files/stringsv2",O_CREAT | O_WRONLY ,0666);
+	tamanhoTotal = 0;
+	tamanhoDesperdicado = 0;
+	int i, fd, fd2;
+	off_t pos;
+	size_t t;
+	Artigo a;
+	char* nome = malloc(200 * sizeof(char));
 
-	char c;
-	off_t x = 0;
-
-	while((read(fd1,&c,1))>0){
-		if(existeL(listaPosAntigas,x)==1){
-			off_t aux = 0;
-			char aux2 = 'r';
-			off_t aux3 = x;
-			while((read(fd1,&aux2,1)>0) && (aux2 != ' ')){aux++;}
-			listaPosAntigas = removeL(listaPosAntigas,x);
-			x = x + aux + 2; 
-			alteraPos(aux3,(aux+2));
-		}
-		
-		else {
-			  write(fd2,&c,1);
-			  x++;
-		}
+	for(i = 0; i < codigoGLOBAL; i++){
+		// Ir buscar o artigo i
+		fd = open("./files/artigos",O_RDONLY ,0666);
+		lseek(fd,i * sizeof(Artigo),SEEK_SET);
+		read(fd, &a, sizeof(Artigo));
+		close(fd);
+		// Ir buscar o nome do artigo
+		getString(a.posicao,&nome);
+		// Criar um novo ficheiro strings
+		// Escrever no novo apenas as strings atualizadas
+		fd2 = open("./files/stringsv2",O_CREAT | O_WRONLY ,0666);
+		pos = lseek(fd2,0,SEEK_END);
+		t = strlen(nome);
+		write(fd2,nome,t);
+		close(fd2);
+		//write(fd2,&c,1);
+		tamanhoTotal += t;
+		// Atualizar posicao no artigo
+		atualizaArtigo(a.codigo,pos,a.preco);
 	}
-
-	close(fd1);
-	close(fd2);
+	unlink("./files/strings");
 	rename("./files/stringsv2","./files/strings");
 }
 
-int main (int argc, char* argv[]){
+int isDidigt(char * s) {
+    int i;
+    for(i=0; s[i]!='\0'; i++){
+        if(!isdigit(s[i]))
+            return 0;
+    }
+    return 1;
+}
 
-	if (iniciaFicheiros() != 1) perror("Falha a inicializar ficheiros");
-	else {	iniciaCodigoGLobal(); 
-			int fd = open(argv[1],O_RDONLY,0666);
-			char buf[1000];
+int main (){
 
-			while(1) {
-				size_t h = readln(fd,buf,sizeof(buf));
-				if(h <= 0) break;
+	char buf[1000];
+	char* out = malloc(25 * sizeof(char));
+	carregarLista();
+	carregarTamanhos();
 
-				if (buf[0] == 'i'){
-					
-				    char* token_inst;
-					char* token_nome;
-					char* token_preco;
-					char* token_lixo;
-
-					token_inst = strtok(buf," ");
-					token_nome = strtok(NULL," ");
-					token_preco = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-									
-					double preco = strtod(token_preco,NULL);
-					insereArtigo(token_nome,preco);
-					
-				}
-
-				if (buf[0] == 'p'){
-					
-				    char* token_inst;
-					char* token_cod;
-					char* token_preco;
-					char* token_lixo;
-
-					token_inst = strtok(buf," ");
-					token_cod = strtok(NULL," ");
-					token_preco = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-					int cod = atoi(token_cod);		
-					double preco = strtod(token_preco,NULL);
-					alteraPreco(cod,preco);
-					
-				}
-
-				if (buf[0] == 'n'){
-					
-				    char* token_inst;
-					char* token_cod;
-					char* token_nome;
-					char* token_lixo;
-
-					token_inst = strtok(buf," ");
-					token_cod = strtok(NULL," ");
-					token_nome = strtok(NULL," ");
-					token_lixo = strtok(NULL," ");
-
-					int cod = atoi(token_cod);		
-					alteraNome(cod,token_nome);
-					
-				}
-		    }
-		
-		
-			compactador();
-			interpretador();
-			printf("tamanhoDesperdicado = %ld\n",tamanhoDesperdicado);
-
-
+	while(1){
+		size_t h = readln(0,buf,sizeof(buf));
+		if(h <= 0) break;
+		verificaCodigoGLobal();
+		if((buf[0] == 'a') && (buf[1] == ' ')){
+			int fd = open("pidServ",O_RDONLY,0666);
+            pid_t x = read(fd,&x,sizeof(pid_t));
+			kill(x,SIGUSR1);
+			close(fd);
 		}
-
-	return 1;
+		if((buf[0] == 'i') && (buf[1] == ' ')){
+			char* token_nome;
+			char* token_preco;
+			token_nome = strtok(buf," ");
+			token_nome = strtok(NULL," ");
+			token_preco = strtok(NULL," ");
+			if(isDidigt(token_preco)){
+				int preco = atoi(token_preco);
+				int c = insereArtigo(token_nome,preco);
+				snprintf(out,25,"Código: %d\n",c);
+				write(1,out,strlen(out));
+			}
+		}
+		if((buf[0] == 'p') && (buf[1] == ' ')){
+			char* token_cod;
+			char* token_preco;
+			token_cod = strtok(buf," ");
+			token_cod = strtok(NULL," ");
+			token_preco = strtok(NULL," ");
+			if(isDidigt(token_cod) && isDidigt(token_preco)){
+				int cod = atoi(token_cod);		
+				int preco = atoi(token_preco);
+				alteraPreco(cod,preco);
+			}
+		}
+		if((buf[0] == 'n') && (buf[1] == ' ')){
+			char* token_cod;
+			char* token_nome;
+			token_cod = strtok(buf," ");
+			token_cod = strtok(NULL," ");
+			token_nome = strtok(NULL," ");
+			if(isDidigt(token_cod)){
+				int cod = atoi(token_cod);
+				alteraNome(cod,token_nome);
+				if(necessitaComp()){
+					compactador();
+					atualizaLista();
+				}
+			}
+		}
+	}
+	free(out);
+	guardarTamanhos();
+	guardarLista();
+	return 0;
 }
