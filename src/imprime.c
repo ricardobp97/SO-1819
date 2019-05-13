@@ -44,28 +44,18 @@ int main () {
     char buffer[1024];
     Artigo a;
     Stock s;
-    off_t p;
     size_t t;
     
     printf("--- Ficheiro Strings ---\n");
-    int fd = open("./strings",O_RDONLY,0666);
+    int fd = open("./files/strings",O_RDONLY,0666);
     while((res = readln(fd, buffer, 1024)) > 0){
         write(1,buffer,res);
     }
     close(fd);
     printf("\n");
 
-    printf("--- Ficheiro Lista ---\n");
-    fd = open("./lista",O_RDONLY,0666);
-    while((res = read(fd, &p, sizeof(off_t))) > 0){
-        res = snprintf(buffer,1024,"Posicao = %ld\n",p);
-        write(1,buffer,res);
-    }
-    close(fd);
-    printf("\n");
-
     printf("--- Ficheiro Tamanho ---\n");
-    fd = open("./tamanho",O_RDONLY,0666);
+    fd = open("./files/tamanho",O_RDONLY,0666);
     while((res = read(fd,&t,sizeof(size_t))) > 0){
         res = snprintf(buffer,1024,"Tamanho = %zd\n",t);
         write(1,buffer,res);
@@ -74,7 +64,7 @@ int main () {
     printf("\n");
 
     printf("--- Ficheiro Artigos ---\n");
-    fd = open("./artigos",O_RDONLY,0666);
+    fd = open("./files/artigos",O_RDONLY,0666);
     while((res = read(fd, &a, sizeof(Artigo))) > 0){
         res = snprintf(buffer,1024,"Código = %d\nPosicao = %ld\nPreco = %d\n",a.codigo,a.posicao,a.preco);
         write(1,buffer,res);
@@ -83,7 +73,7 @@ int main () {
     close(fd);
 
     printf("--- Ficheiro Stocks ---\n");
-    fd = open("./stocks",O_RDONLY,0666);
+    fd = open("./files/stocks",O_RDONLY,0666);
     while((res = read(fd, &s, sizeof(Stock))) > 0){
         res = snprintf(buffer,1024,"Código = %d\nQuantidade = %d\n",s.codigoArt,s.quantidade);
         write(1,buffer,res);
@@ -92,7 +82,7 @@ int main () {
     close(fd);
 
     printf("--- Ficheiro Vendas ---\n");
-    fd = open("./vendas",O_RDONLY,0666);
+    fd = open("./files/vendas",O_RDONLY,0666);
     while((res = readln(fd, buffer, 1024)) > 0){
         write(1,buffer,res);
     }
