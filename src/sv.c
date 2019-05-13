@@ -16,8 +16,17 @@
 
 #define SIZELINE 256
 
+void end(int signum){
+  unlink("pipeServ");
+  kill(getpid(),SIGKILL);
+}
+
+
 char *token[2];
-int lido;
+int lido = 0;
+Artigo cache[10];
+int posCache = 0;
+int numElemCache = 0;
 
 char* getTime(){
     time_t rawtime;
@@ -36,6 +45,41 @@ Stock new_stock (int c, int q) {
 		.quantidade = q
 	};
 }
+
+
+int getFromCache(int cod){
+    int i;
+    for(i=0; i<numElemCache; i++){
+        if(cache[i].codigo == cod)
+            return cache[i].preco;
+    }
+    return -1;
+}
+
+void atualizaCache(){
+    int i, fd, cod;
+    Artigo a;
+    fd = open("./files/artigos",O_RDONLY, 0666);
+    for(i=0; i<numElemCache; i++){
+        cod = cache[i].codigo;
+        lseek(fd,cod * sizeof(Artigo),SEEK_SET);
+        read(fd,&a, sizeof(Artigo));
+        cache[i] = a;
+    }
+    close(fd);
+}
+
+void adicionaCache(int cod){
+    Artigo a;
+    int fd = open("./files/artigos",O_RDONLY, 0666);
+    lseek(fd,cod * sizeof(Artigo),SEEK_SET);
+    read(fd,&a, sizeof(Artigo));
+    close(fd);
+    cache[posCache] = a;
+    if(posCache == 9) posCache = 0;
+    else posCache++;
+}
+
 
 int getStock(int c){
     int r, res;
@@ -139,9 +183,13 @@ int efetua_venda (int c, int q) {
           r=0;
     }
     set_stock(c,r);
-    int total = qvenda * getPrecoArt(c);
+    int total=getFromCache(c);
+    if(total==-1){
+      total = qvenda * getPrecoArt(c);
+      adicionaCache(c);
+    }
     insere_venda(c,qvenda,total);
-}
+  }
     //se não existir stock
     else{
       set_stock(c,q);
@@ -177,10 +225,8 @@ int writeOutput(char* res,int lido,char* pipe){
   pipe[strlen(pipe)-1]='\0';
   int fd=open(pipe,O_WRONLY);
   if(fd==-1) perror("output");
-  printf("%d\n",fd);
   write(fd,res,lido);
   close(fd);
-  printf("done");
   return 0;
 }
 
@@ -283,7 +329,7 @@ void agrega(int signum){
     int fd = open("files/vendas",O_RDONLY,0666);
     int size = lseek(fd,0,SEEK_END);
     close(fd);
-    int numPipes=4;
+    int numPipes=1;
 
 
     // sub agregadores escrevem para aqui
@@ -388,6 +434,14 @@ int main() {
 
     //definição handler para pedido de agregação
     if( signal(SIGUSR1,agrega) == SIG_ERR){
+      perror("Signal failed");
+    }
+
+    if( signal(SIGUSR2,atualizaCache) == SIG_ERR){
+      perror("Signal failed");
+    }
+
+    if( signal(SIGINT,end) == SIG_ERR){
       perror("Signal failed");
     }
 

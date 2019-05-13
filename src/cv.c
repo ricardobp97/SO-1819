@@ -72,14 +72,13 @@ int main () {
         write(pipe,inst,n);
         printf("%s\n",mypipe);
         int me_pip = open(mypipe, O_RDONLY);
-        printf("%d\n",me_pip);
         char buf[SIZELINE];
         puts("waiting for anwser");
         n = readln(me_pip,buf,SIZELINE);
         write(1,buf,n);
         close(me_pip);
     }
-    printf("FINAL\n", );
+    printf("FINAL\n");
   close(pipe);
   unlink(mypipe);
   return 0;
