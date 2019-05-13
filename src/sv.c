@@ -236,7 +236,7 @@ int processa_instrucao (char* buf) {
     stock=preco=0;
     char res[300];
     int cod,w=0;
-    char * quant;
+    char * quant=NULL;
     // separar argumentos
     char * saveptr;
     char* tok= strtok_r(buf,":",&saveptr);

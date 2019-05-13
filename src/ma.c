@@ -86,7 +86,7 @@ void guardarTamanhos(){
 
 void atualizaTamDes(off_t p){
 	size_t t = 0;
-	char a;
+	char a='\0';
 	int fd = open("./files/strings",O_RDONLY ,0666);
 	lseek(fd,p,SEEK_SET);
 	while(a!= ' '){
@@ -140,7 +140,7 @@ int necessitaComp(){
 
 ssize_t readln(int fildes, void *buf, size_t nbyte) {
 	char* b = buf;
-	int i = 0; 
+	int i = 0;
 
 	while(i < nbyte) {
 		int n = read(fildes, &b[i],1);
@@ -264,7 +264,7 @@ int main (){
 			token_cod = strtok(NULL," ");
 			token_preco = strtok(NULL," ");
 			if(isDidigt(token_cod) && isDidigt(token_preco)){
-				int cod = atoi(token_cod);		
+				int cod = atoi(token_cod);
 				int preco = atoi(token_preco);
 				alteraPreco(cod,preco);
 			}
@@ -280,6 +280,7 @@ int main (){
 				alteraNome(cod,token_nome);
 				if(necessitaComp()){
 					compactador();
+					unlink("pipeServ");
 				}
 			}
 		}
