@@ -271,7 +271,8 @@ int isDidigt(char * s) {
 }
 
 int main (){
-
+	int fd;
+	pid_t x;
 	char buf[1000];
 	char* out = malloc(25 * sizeof(char));
 	carregarLista();
@@ -282,8 +283,8 @@ int main (){
 		if(h <= 0) break;
 		verificaCodigoGLobal();
 		if((buf[0] == 'a') && (buf[1] == ' ')){
-			int fd = open("pidServ",O_RDONLY,0666);
-            pid_t x = read(fd,&x,sizeof(pid_t));
+			fd = open("pidServ",O_RDONLY,0666);
+            x = read(fd,&x,sizeof(pid_t));
 			kill(x,SIGUSR1);
 			close(fd);
 		}
@@ -322,6 +323,7 @@ int main (){
 				int cod = atoi(token_cod);
 				alteraNome(cod,token_nome);
 				if(necessitaComp()){
+					printf("COMPACTADOR!!\n");
 					compactador();
 					atualizaLista();
 				}
@@ -331,5 +333,11 @@ int main (){
 	free(out);
 	guardarTamanhos();
 	guardarLista();
+	fd = open("pidServ",O_RDONLY,0666);
+	if(fd >= 0){
+    	pid_t x = read(fd,&x,sizeof(pid_t));
+		kill(x,SIGUSR2);
+		close(fd);
+	}
 	return 0;
 }
