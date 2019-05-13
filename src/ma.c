@@ -10,7 +10,6 @@
 #include "headers/artigo.h"
 
 int codigoGLOBAL = -1 ;
-L listaPosAntigas = NULL;
 size_t tamanhoDesperdicado = 0;
 size_t tamanhoTotal = 0;
 
@@ -70,13 +69,6 @@ void alteraPreco(int cod,int pre){
 	}
 }
 
-void inserePos(off_t p){
-	L l = malloc(sizeof(L));
-	l->valor = p;
-	l->prox = listaPosAntigas;
-	listaPosAntigas = l;
-}
-
 void carregarTamanhos(){
 	int fd = open("./files/tamanho",O_CREAT | O_RDONLY,0666);
 	read(fd,&tamanhoDesperdicado, sizeof(size_t));
@@ -90,40 +82,6 @@ void guardarTamanhos(){
 	write(fd,&tamanhoDesperdicado,sizeof(size_t));
 	write(fd,&tamanhoTotal,sizeof(size_t));
 	close(fd);
-}
-
-void carregarLista(){
-	int res;
-	off_t p;
-	int fd = open("./files/lista",O_CREAT | O_RDONLY,0666);
-	while((res = read(fd, &p, sizeof(off_t))) > 0){
-        inserePos(p);
-    }
-	close(fd);
-	unlink("./files/lista");
-}
-
-void guardarLista(){
-	int fd = open("./files/lista",O_CREAT | O_APPEND | O_WRONLY ,0666);
-	L aux;
-	off_t p;
-	while(listaPosAntigas){
-		p = listaPosAntigas->valor;
-		write(fd,&p,sizeof(off_t));
-		aux = listaPosAntigas;
-		listaPosAntigas = listaPosAntigas->prox;
-		free(aux);
-	}
-	close(fd);
-}
-
-void atualizaLista(){
-	L aux;
-	while(listaPosAntigas){
-		aux = listaPosAntigas;
-		listaPosAntigas = listaPosAntigas->prox;
-		free(aux);
-	}
 }
 
 void atualizaTamDes(off_t p){
@@ -146,7 +104,6 @@ Artigo alteraNomeAux(int cod){
 	lseek(fd1,cod * tamanhoArtigoAux,SEEK_SET);
 	read(fd1,&a,sizeof(Artigo));
 	atualizaTamDes(a.posicao);
-	inserePos(a.posicao);
 	//calculaDesperdicio(cod);
 	close(fd1);
 	return a;
@@ -275,7 +232,6 @@ int main (){
 	pid_t x;
 	char buf[1000];
 	char* out = malloc(25 * sizeof(char));
-	carregarLista();
 	carregarTamanhos();
 
 	while(1){
@@ -323,16 +279,13 @@ int main (){
 				int cod = atoi(token_cod);
 				alteraNome(cod,token_nome);
 				if(necessitaComp()){
-					printf("COMPACTADOR!!\n");
 					compactador();
-					atualizaLista();
 				}
 			}
 		}
 	}
 	free(out);
 	guardarTamanhos();
-	guardarLista();
 	fd = open("pidServ",O_RDONLY,0666);
 	if(fd >= 0){
     	pid_t x = read(fd,&x,sizeof(pid_t));
