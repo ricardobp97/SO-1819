@@ -10,4 +10,3 @@ Artigo novo_Artigo(int cod, off_t pos, int pre){
 		.preco = pre
 	};
 }
-

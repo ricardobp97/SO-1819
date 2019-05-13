@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS =  -Wall
 
-all: ma ag sv cv
+all: ma ag sv cv imprime
 
 ma: ma.c artigo.c headers/artigo.h
 
@@ -11,5 +11,7 @@ cv: cv.c
 
 sv: sv.c
 
+imprime: imprime.c
+
 clean:
-	rm ma ag cv sv
+	rm ma ag cv sv imprime
