@@ -18,6 +18,7 @@
 
 void end(int signum){
   unlink("pipeServ");
+  unlink("subagregacoes");
   kill(getpid(),SIGKILL);
 }
 
@@ -222,9 +223,9 @@ int update_stock (int c, int q) {
 }
 
 int writeOutput(char* res,int lido,char* pipe){
-  pipe[strlen(pipe)-1]='\0';
+  //pipe[strlen(pipe)-1]='\0';
   int fd=open(pipe,O_WRONLY);
-  if(fd==-1) perror("output");
+  if(fd==-1) perror("output here");
   write(fd,res,lido);
   close(fd);
   return 0;
@@ -235,23 +236,40 @@ int processa_instrucao (char* buf) {
     int stock, preco;
     stock=preco=0;
     char res[300];
-    int cod,w=0;
-    char * quant=NULL;
+    int w=0;
+    //char instrucao= strdup(buf);
+    int cod,quantidade;
+    char pipe[200];
+    int preenchido=0;
+    preenchido= sscanf(buf,"%d %d:%s",&cod ,&quantidade,pipe);
+
+
+
     // separar argumentos
+    /*
     char * saveptr;
+
     char* tok= strtok_r(buf,":",&saveptr);
     char* pipe=strtok_r(NULL,":",&saveptr);
     cod=atoi(strtok_r(tok," ",&saveptr));
     quant=strtok_r(NULL," ",&saveptr);
+    */
     if(artigo_existe(cod) > 0){
       //consulta de preço e stock
-      if(quant==NULL){
-        int preco = getPrecoArt(cod);
-        stock = getStock(cod);
-        w= sprintf(res,"Stock: %d || Preco: %d\n",stock,preco);
+      //if(quant==NULL){
+      if(preenchido!=3){
+        preenchido= sscanf(buf,"%d:%s",&cod,pipe);
+        if(preenchido==2){
+          int preco = getPrecoArt(cod);
+          stock = getStock(cod);
+          w= sprintf(res,"Stock: %d || Preco: %d\n",stock,preco);
+        }
+        else{
+          return 1;
+        }
       }
       else {
-        int quantidade=atoi(quant);
+        //int quantidade=atoi(quant);
         //adicionar stock
         if(quantidade>0){
             stock = update_stock(cod,quantidade);
@@ -266,43 +284,12 @@ int processa_instrucao (char* buf) {
     }
     else {
       perror("Código não existe");
-      printf("%d\n",cod );
       return -1;
     }
     writeOutput(res,w,pipe);
     return 0;
 }
-/*
-    if(tok != NULL && isDidigt(tok)){
-        int c = atoi(tok);
-        if(artigo_existe(c) > 0){
-            tok = strtok(NULL," ");
-            if(tok != NULL){
-                int q = atoi(tok);
-                if(q>0){
-                    stock = update_stock(c,q);
-                    snprintf(*pt,25,"Novo Stock: %d\n",stock);
-                }
-                else{
-                    stock = efetua_venda(c,-q);
-                    sprintf(res,"Novo Stock: %d\n",stock);
-                }
-            }
-            else{
-                // mostra no stdout stock e preco
-                int preco = getPrecoArt(c);
-                stock = getStock(c);
-                snprintf(*pt,30,"Stock: %d || Preco: %d\n",stock,preco);
-            }
-      }
-      else{
-            snprintf(*pt,21,"Artigo não existe!\n");
-      }
-    }
-    else{
-        snprintf(*pt,20,"Código Inválido!\n");
-    }
-    */
+
 
 int readln(int fildes, char *buf, int maxBytes){
   char byte;
@@ -427,6 +414,9 @@ int main() {
     int fd=open("pidServ", O_CREAT | O_WRONLY,0666);
     write(fd,&pid,sizeof(pid_t));
     close(fd);
+    int d=open("pidServ",O_CREAT | O_RDONLY,0666);
+    read(fd,&d,sizeof(d));
+    close(fd);
 
     //criação pipe para comunicaçaõ com cv
     if(mkfifo("pipeServ",0666)==-1)
@@ -479,12 +469,12 @@ int main() {
     int pipe= open("pipeServ",O_RDONLY);
     while(1){
       while((n=readln(pipe,buf,SIZELINE))>0){
-        char * line=strdup(buf);
-        char * saveptr;
+        char * tosend=strdup(buf);
+        char * saveptr =NULL;
         char* tok=strtok_r(buf," ",&saveptr);
         int cod= atoi(tok);
-      int res=cod%10;
-      write(pipeToChild[res][1],line,n);
+        int res=cod%10;
+        write(pipeToChild[res][1],tosend,n);
       }
     }
 

@@ -110,7 +110,7 @@ Artigo alteraNomeAux(int cod){
 }
 
 void alteraNome(int cod, char* n) {
-	if(cod >= codigoGLOBAL) write(1,"Artigo inexistente!\n",21);
+	if(cod >= codigoGLOBAL) write(1,"Artigo inexistente 1!\n",23);
 	else{
 		Artigo a;
 		char c = ' ';
@@ -229,18 +229,19 @@ int isDidigt(char * s) {
 
 int main (){
 	int fd;
-	pid_t x;
+	int x;
 	char buf[1000];
 	char* out = malloc(25 * sizeof(char));
 	carregarTamanhos();
+	verificaCodigoGLobal();
+	int h;
 
-	while(1){
-		size_t h = readln(0,buf,sizeof(buf));
-		if(h <= 0) break;
-		verificaCodigoGLobal();
-		if((buf[0] == 'a') && (buf[1] == ' ')){
+	while((h=readln(0,buf,sizeof(buf)))>0){
+
+		if(buf[0] == 'a'){
 			fd = open("pidServ",O_RDONLY,0666);
-            x = read(fd,&x,sizeof(pid_t));
+			//x=read(fd,&x,sizeof(pid_t));
+			read(fd,&x,sizeof(pid_t));
 			kill(x,SIGUSR1);
 			close(fd);
 		}

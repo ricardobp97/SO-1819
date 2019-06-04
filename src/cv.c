@@ -37,15 +37,10 @@ char* getPid(){
     sprintf(buf,"%d",pid);
     return strdup(buf);
 }
-// Cliente de Vendas:
-// Abre o pipe do servidor para lhe fornececer input
-// Cria o seu pipe para receber output do servidor
-// Eniva mensagem ao servidor para sinalizar existencia
-// Mensagens iniciadas com "C:" -> nome do pipe
-// Mensagens iniciadas com "mypipe:" -> instrucao
-// relativa ao respetivo cliente que detem o pipe
+
+
 int main () {
-    int res,f,n;
+    int res,n;
     char inst[SIZELINE];
     char buffer[SIZELINE];
     char* tok;
@@ -55,16 +50,6 @@ int main () {
 
     mkfifo(mypipe, 0666);
 
-    /*if((f = fork()) == 0){
-        int pp = open(mypipe, O_RDONLY, 0666);
-        int n;
-        char buf[100];
-        while((n = read(pp, buf, 100)) > 0){
-            printf("%s\n",buf );
-        }
-        close(pp);
-        exit(0);
-    }*/
     while((res = readln(0, buffer, SIZELINE)) > 0){
 				char* safepointer;
         tok=strtok_r(buffer,"\n",&safepointer);
@@ -76,7 +61,6 @@ int main () {
         write(1,buf,n);
         close(me_pip);
     }
-  printf("FINAL\n");
   close(pipe);
   unlink(mypipe);
   return 0;
