@@ -24,7 +24,7 @@ void end(int signum){
 
 
 char *token[2];
-int lido = 0;
+int lido;
 Artigo cache[10];
 int posCache = 0;
 int numElemCache = 0;
@@ -189,6 +189,9 @@ int efetua_venda (int c, int q) {
       total = qvenda * getPrecoArt(c);
       adicionaCache(c);
     }
+    else{
+      total*=qvenda;
+    }
     insere_venda(c,qvenda,total);
   }
     //se não existir stock
@@ -311,12 +314,11 @@ int readln(int fildes, char *buf, int maxBytes){
 void agrega(int signum){
 
   pid_t pidW=0;
-
-  char* data = getTime();
-    int fd = open("files/vendas",O_RDONLY,0666);
+    char* data = getTime();
+    int fd = open("./files/vendas",O_RDONLY,0666);
     int size = lseek(fd,0,SEEK_END);
     close(fd);
-    int numPipes=1;
+    int numPipes=4;
 
 
     // sub agregadores escrevem para aqui
@@ -373,6 +375,7 @@ void agrega(int signum){
           _exit(-1);
         }
       }
+      _exit(0);
     }
 
     // PAI ESCREVE PARA OS AGREGADORES INTERMEDIOS
@@ -410,12 +413,10 @@ int main() {
 
     int numPipes=10;
     pid_t pid=getpid();
+    lido=0;
     //ficheiro com o pid do servidor
     int fd=open("pidServ", O_CREAT | O_WRONLY,0666);
     write(fd,&pid,sizeof(pid_t));
-    close(fd);
-    int d=open("pidServ",O_CREAT | O_RDONLY,0666);
-    read(fd,&d,sizeof(d));
     close(fd);
 
     //criação pipe para comunicaçaõ com cv
@@ -450,10 +451,9 @@ int main() {
             close(pipeToChild[i][1]);
           }
           char buf[SIZELINE];
-          while(1){
+
             while((readln(pipeToChild[i][0],buf,SIZELINE))>0){
             processa_instrucao(strdup(buf));
-            }
           }
         }
       }

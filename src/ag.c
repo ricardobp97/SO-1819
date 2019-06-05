@@ -14,9 +14,9 @@ typedef struct par{
 } *Par;
 
 #define SIZEARRAY 16000
-#define SIZELINE 200
+#define SIZELINE 500
 int size;
-char fileName[10];
+char fileName[50];
 Par agregados[SIZEARRAY];
 
 
@@ -24,8 +24,8 @@ int readln(int fildes, char *buf, int maxBytes){
   char byte;
   int i = 0;
   int res;
-  while (i < maxBytes && (res = read(fildes,&byte,1)) != 0){
-    if (byte != '\n'){
+  while (i < maxBytes && ((res = read(fildes,&byte,1)) > 0)){
+    if (byte != '\n' && byte != EOF){
       buf[i] = byte;
       i += res;
     }
@@ -76,12 +76,13 @@ void atualiza(char* line){
 
 
 int main(int argc, char const *argv[]) {
+
   sprintf(fileName,"%d",getpid());
   char buf[SIZELINE];
   for(int i=0;i<SIZEARRAY;i++){
     agregados[i]=NULL;
   }
-  while((size=readln(0,buf,SIZELINE))){
+  while((size=readln(0,buf,SIZELINE))!=0){
       atualiza(buf);
   }
   writeOutput();
